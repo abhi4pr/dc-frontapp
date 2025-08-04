@@ -6,9 +6,12 @@ import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
 
-const Login = () => {
+const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -16,10 +19,13 @@ const Login = () => {
       const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
+        name,
+        phone,
+        address,
       });
 
       const { token } = response.data;
-      localStorage.setItem("token", token);
+      // localStorage.setItem("token", token);
       alert("Login successful");
       navigate("/app/dashboard");
     } catch (error) {
@@ -41,7 +47,17 @@ const Login = () => {
             <Row className="align-items-center text-center">
               <Col>
                 <Card.Body className="card-body">
-                  <h4 className="mb-3 f-w-400">Doctor's Login</h4>
+                  <h4 className="mb-3 f-w-400">Doctor's Register</h4>
+
+                  <div className="input-group mb-3">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
 
                   <div className="input-group mb-3">
                     <input
@@ -62,15 +78,35 @@ const Login = () => {
                     />
                   </div>
 
+                  <div className="input-group mb-3">
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Phone number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="input-group mb-3">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </div>
+
                   <button
                     className="btn btn-primary btn-block mb-4"
                     onClick={handleLogin}
                   >
-                    Login
+                    Resgiter
                   </button>
                   <br />
-                  <Link to="/auth/register" className="">
-                    Register
+                  <Link to="/auth/login" className="">
+                    Login
                   </Link>
                 </Card.Body>
               </Col>
@@ -82,4 +118,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

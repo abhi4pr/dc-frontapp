@@ -1,199 +1,96 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Form, Button } from 'react-bootstrap';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import { API_URL } from '../../constants';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../../utility/api';
+import React, { useState, useEffect } from "react";
+import { Card, Row, Button, Form, Col } from "react-bootstrap";
+import { Link } from "react-router-dom";
+import DataTable from "react-data-table-component";
+import axios from "axios";
+import { API_URL } from "../../constants";
+import "react-confirm-alert/src/react-confirm-alert.css";
+import api from "../../utility/api";
+import Loader from "./Loader";
 
 const Repertory = () => {
-  const navigate = useNavigate();
-  const { bookId } = useParams();
+  const [search, setSearch] = useState("");
+  const [data, setData] = useState([]);
+  const [filterData, setFilterData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const perPage = 10;
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    category: 'Default',
-    pdfFile: null
+    title: "",
+    doctor: [],
+    // image: null,
   });
-  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  const categories = [
-    'Default',
-    'Fiction',
-    'Non-Fiction',
-    'Science',
-    'History',
-    'Biography',
-    'Fantasy',
-    'Mystery',
-    'Romance',
-    'Self-Help',
-    'Health & Wellness'
-  ];
+  const handleSubmit = () => {};
 
-  useEffect(() => {
-    if (bookId) {
-      api
-        .get(`${API_URL}/books/${bookId}`)
-        .then((response) => {
-          const { name, description, category, pdfFile } = response.data;
-          setFormData({ name, description, category, pdfFile: null });
-          setImagePreview(`${pdfFile}`);
-        })
-        .catch((error) => {
-          console.error('Error fetching book data:', error);
-          toast.error('Error fetching book data.');
-        });
-    }
-  }, [bookId]);
-
-  const validateForm = () => {
-    let newErrors = {};
-    if (!formData.name.trim()) {
-      newErrors.name = 'Title is required';
-    }
-    if (!bookId && !formData.category) {
-      newErrors.category = 'category is required';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (event) => {
+  const handleChange = () => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setFormData({ ...formData, pdfFile: file });
-    }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateForm()) {
-      toast.error('Please fill all required fields.');
-      return;
-    }
-    setLoading(true);
-
-    const data = new FormData();
-    data.append('name', formData.name);
-    data.append('description', formData.description);
-    data.append('category', formData.category);
-    if (formData.pdfFile) {
-      data.append('pdfFile', formData.pdfFile);
-    }
-
-    try {
-      if (bookId) {
-        await api.put(`${API_URL}/books/${bookId}`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        toast.success('Book updated successfully!');
+  const handleCheckboxChange = (e) => {
+    const { value, checked } = e.target;
+    setFormData((prev) => {
+      const currentDoctors = prev.doctor || [];
+      if (checked) {
+        return { ...prev, doctor: [...currentDoctors, value] };
       } else {
-        await api.post(`${API_URL}/books/add-book`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        toast.success('Book added successfully!');
+        return {
+          ...prev,
+          doctor: currentDoctors.filter((item) => item !== value),
+        };
       }
-      navigate('/books');
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to submit books.';
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
     <Row className="justify-content-center">
       <Card>
         <div className="text-center mb-4 mt-4">
-          <h4 className="fw-bold">{bookId ? 'Edit book' : 'Add book'}</h4>
-          <p className="text-muted">{bookId ? 'Edit the book details' : 'Add a new book'}</p>
+          <h4 className="fw-bold">{"Repertory"}</h4>
+          <p className="text-muted">{"repertory"}</p>
         </div>
         <Form onSubmit={handleSubmit}>
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
-            <Form.Label column sm={2} style={{ textAlign: 'right' }}>
+            <Form.Label column sm={2} style={{ textAlign: "right" }}>
               Title:
             </Form.Label>
             <Col sm={10}>
               <Form.Control
                 type="text"
                 placeholder="Enter title"
-                name="name"
-                value={formData.name}
+                name="title"
+                value={formData.title}
                 onChange={handleChange}
-                isInvalid={!!errors.name}
+                isInvalid={!!errors.title}
               />
-              <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
+              <Form.Control.Feedback type="invalid">
+                {errors.title}
+              </Form.Control.Feedback>
             </Col>
           </Form.Group>
 
-          <Form.Group as={Row} className="mb-3" controlId="formDescription">
-            <Form.Label column sm={2} style={{ textAlign: 'right' }}>
-              Description:
+          <Form.Group as={Row} className="mb-3" controlId="formSubstanceUse">
+            <Form.Label column sm={2} style={{ textAlign: "right" }}>
+              Doctor?
             </Form.Label>
             <Col sm={10}>
-              <Form.Control
-                type="text"
-                placeholder="Enter description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-              />
-            </Col>
-          </Form.Group>
-
-          <Form.Group as={Row} className="mb-3" controlId="formCategory">
-            <Form.Label column sm={2} style={{ textAlign: 'right' }}>
-              Category:
-            </Form.Label>
-            <Col sm={10}>
-              <Form.Select name="category" value={formData.category} onChange={handleChange} isInvalid={!!errors.category}>
-                <option value="">Select Category</option>
-                {categories.map((category, index) => (
-                  <option key={index} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">{errors.category}</Form.Control.Feedback>
-            </Col>
-          </Form.Group>
-
-          <Form.Group as={Row} className="mb-3" controlId="formImage">
-            <Form.Label column sm={2} style={{ textAlign: 'right' }}>
-              Pdf file:
-            </Form.Label>
-            <Col sm={10}>
-              <Form.Control type="file" name="pdfFile" accept="application/pdf" onChange={handleImageChange} isInvalid={!!errors.image} />
-              <Form.Control.Feedback type="invalid">{errors.pdfFile}</Form.Control.Feedback>
-            </Col>
-            <Col sm={2}></Col>
-            <Col sm={3} className="mt-3">
-              {imagePreview && (
-                <iframe
-                  src={imagePreview}
-                  title="PDF Preview"
-                  style={{
-                    width: '100%',
-                    height: '400px',
-                    border: '1px solid #ddd',
-                    borderRadius: '5px'
-                  }}
-                />
+              {["name 1", "name 2", "name 3", "name 4", "name 5"].map(
+                (option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="checkbox"
+                    label={option}
+                    name="doctor"
+                    value={option}
+                    checked={formData.doctor?.includes(option)}
+                    onChange={handleCheckboxChange}
+                    id={`doctor-${idx}`}
+                  />
+                )
               )}
             </Col>
           </Form.Group>
@@ -201,9 +98,13 @@ const Repertory = () => {
           <Form.Group as={Row} className="mb-3">
             <Col sm={{ span: 10, offset: 2 }} className="d-flex gap-2">
               <Button type="submit" variant="primary" disabled={loading}>
-                {loading ? 'Submitting...' : bookId ? 'Update' : 'Submit'}
+                {loading ? "Submitting..." : "Submit"}
               </Button>
-              <Button type="button" variant="danger" onClick={() => navigate('/rewards')}>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => navigate("/diets")}
+              >
                 Cancel
               </Button>
             </Col>

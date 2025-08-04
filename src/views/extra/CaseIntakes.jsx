@@ -797,13 +797,241 @@ const CaseIntakes = () => {
             </>
           )}
 
+          {step == 6 && (
+            <>
+              <Form.Group className="mb-3" controlId="formMorning">
+                <Form.Label>Morning?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="morning"
+                    value={option}
+                    checked={formData.morning === option}
+                    onChange={handleChange}
+                    id={`morning-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formForenoon">
+                <Form.Label>Forenoon?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="forenoon"
+                    value={option}
+                    checked={formData.forenoon === option}
+                    onChange={handleChange}
+                    id={`forenoon-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formNoon">
+                <Form.Label>Noon?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="noon"
+                    value={option}
+                    checked={formData.noon === option}
+                    onChange={handleChange}
+                    id={`noon-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formAfternoon">
+                <Form.Label>Afternoon?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="afternoon"
+                    value={option}
+                    checked={formData.afternoon === option}
+                    onChange={handleChange}
+                    id={`afternoon-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formEvening">
+                <Form.Label>Evening?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="evening"
+                    value={option}
+                    checked={formData.evening === option}
+                    onChange={handleChange}
+                    id={`evening-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formNight">
+                <Form.Label>Night?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="night"
+                    value={option}
+                    checked={formData.night === option}
+                    onChange={handleChange}
+                    id={`night-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formBeforeMidnight">
+                <Form.Label>Before midnight?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="beforeMidnight"
+                    value={option}
+                    checked={formData.beforeMidnight === option}
+                    onChange={handleChange}
+                    id={`beforeMidnight-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formAfterMidnight">
+                <Form.Label>After midnight?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="afterMidnight"
+                    value={option}
+                    checked={formData.afterMidnight === option}
+                    onChange={handleChange}
+                    id={`afterMidnight-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formHotWeather">
+                <Form.Label>Hot weather?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="hotWeather"
+                    value={option}
+                    checked={formData.hotWeather === option}
+                    onChange={handleChange}
+                    id={`hotWeather-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formColdWeather">
+                <Form.Label>Cold weather?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="coldWeather"
+                    value={option}
+                    checked={formData.coldWeather === option}
+                    onChange={handleChange}
+                    id={`coldWeather-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formDampWeather">
+                <Form.Label>Damp weather?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="dampWeather"
+                    value={option}
+                    checked={formData.dampWeather === option}
+                    onChange={handleChange}
+                    id={`dampWeather-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formDryWeather">
+                <Form.Label>Dry weather?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="dryWeather"
+                    value={option}
+                    checked={formData.dryWeather === option}
+                    onChange={handleChange}
+                    id={`dryWeather-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formWindyWeather">
+                <Form.Label>Windy weather?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="windyWeather"
+                    value={option}
+                    checked={formData.windyWeather === option}
+                    onChange={handleChange}
+                    id={`windyWeather-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formThunderstorms">
+                <Form.Label>Thunderstorms?</Form.Label>
+                {["Better", "Worse"].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="radio"
+                    label={option}
+                    name="thunderstorms"
+                    value={option}
+                    checked={formData.thunderstorms === option}
+                    onChange={handleChange}
+                    id={`thunderstorms-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+            </>
+          )}
+
           <div className="d-flex justify-content-between mt-4">
             {step > 1 && (
               <Button variant="secondary" onClick={handleBack}>
                 Back
               </Button>
             )}
-            {step < 5 ? (
+            {step < 6 ? (
               <Button variant="primary" onClick={handleNext}>
                 Next
               </Button>
