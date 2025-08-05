@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Form, Button, ProgressBar } from "react-bootstrap";
+import { Card, Form, Button, ProgressBar, Col } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
 import { useNavigate, useParams } from "react-router-dom";
@@ -1025,13 +1025,387 @@ const CaseIntakes = () => {
             </>
           )}
 
+          {step == 7 && (
+            <>
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Menstrual Cycle Length</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Menstrual Cycle Length"
+                  name="menstrualcycle"
+                  value={formData.menscycle}
+                  onChange={handleChange}
+                  isInvalid={!!errors.menscycle}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.menscycle}
+                </Form.Control.Feedback>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Flow Duration</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Flow Duration"
+                  name="flowduration"
+                  value={formData.flowduration}
+                  onChange={handleChange}
+                  isInvalid={!!errors.flowduration}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.flowduration}
+                </Form.Control.Feedback>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>select flow type</Form.Label>
+                <Form.Control
+                  as="select"
+                  name="flowtype"
+                  value={formData.flowtype}
+                  onChange={handleChange}
+                  isInvalid={!!errors.flowtype}
+                >
+                  <option value="">Select a flowtype</option>
+                  <option value="heavy_clots">Heavy with clots</option>
+                  <option value="heavy_bright">Heavy, bright red</option>
+                  <option value="moderate_normal">Moderate, normal</option>
+                  <option value="light_scanty">Light, scanty</option>
+                  <option value="dark_thick">Dark, thick</option>
+                  <option value="watery_thin">Watery, thin</option>
+                </Form.Control>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formSubstanceUse">
+                <Form.Label>PMS symptoms</Form.Label>
+                {[
+                  "Mood swings",
+                  "Breast tenderness",
+                  "Bloating",
+                  "Headaches",
+                  "Irritability",
+                  "Food cravings",
+                ].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="checkbox"
+                    label={option}
+                    name="pms"
+                    value={option}
+                    checked={formData.pms?.includes(option)}
+                    onChange={handleCheckboxChange}
+                    id={`pms-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Menstrual Pain pattern</Form.Label>
+                <Form.Control
+                  as="select"
+                  name="painpattern"
+                  value={formData.painpattern}
+                  onChange={handleChange}
+                  isInvalid={!!errors.painpattern}
+                >
+                  <option value="">Pain pattern</option>
+                  <option value="none">No pain</option>
+                  <option value="before_better_flow">
+                    Pain before, better with flow
+                  </option>
+                  <option value="during_flow">Pain during flow</option>
+                  <option value="cramping_spasmodic">
+                    Cramping, spasmodic
+                  </option>
+                  <option value="bearing_down">Bearing down sensation</option>
+                  <option value="shooting_neuralgic">
+                    Shooting, neuralgic
+                  </option>
+                </Form.Control>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formSubstanceUse">
+                <Form.Label>Complete Systems Review</Form.Label>
+                {[
+                  "Headaches",
+                  "Hair loss",
+                  "Scalp conditions",
+                  "Head injuries",
+                  "Vision changes",
+                  "Eye pain",
+                  "Discharge",
+                  "Light sensitivity",
+                  "ears",
+                  "Hearing loss",
+                  "Tinnitus",
+                  "Ear pain",
+                  "Discharge",
+                  "nose",
+                  "Congestion",
+                  "Nosebleeds",
+                  "Loss of smell",
+                  "Polyps",
+                  "throat",
+                  "Sore throat",
+                  "Hoarseness",
+                  "Difficulty swallowing",
+                  "Throat clearing",
+                  "respiratory",
+                  "Cough",
+                  "Shortness of breath",
+                  "Wheezing",
+                  "Chest pain",
+                  "cardiac",
+                  "Palpitations",
+                  "Chest pain",
+                  "Edema",
+                  "Blood pressure issues",
+                  "gastrointestinal",
+                  "Nausea",
+                  "Vomiting",
+                  "Diarrhea",
+                  "Constipation",
+                  "Abdominal pain",
+                  "urogenital",
+                  "Urinary frequency",
+                  "Pain on urination",
+                  "Sexual dysfunction",
+                  "Menstrual issues",
+                  "Joint pain",
+                  "Muscle aches",
+                  "Stiffness",
+                  "Weakness",
+                  "neurological",
+                  "Numbness",
+                  "Tingling",
+                  "Tremors",
+                  "Memory issues",
+                  "skin",
+                  "Rashes",
+                  "Itching",
+                  "Moles changes",
+                  "Healing issues",
+                  "endocrine",
+                  "Weight changes",
+                  "Temperature intolerance",
+                  "Excessive thirst",
+                  "Fatigue",
+                ].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="checkbox"
+                    label={option}
+                    name="systemreview"
+                    value={option}
+                    checked={formData.systemreview?.includes(option)}
+                    onChange={handleCheckboxChange}
+                    id={`systemreview-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Body Temperature</Form.Label>
+                <Form.Control
+                  as="select"
+                  name="bodytemp"
+                  value={formData.bodytemp}
+                  onChange={handleChange}
+                  isInvalid={!!errors.bodytemp}
+                >
+                  <option value="">Select pattern</option>
+                  <option value="always_hot">Always feels too hot</option>
+                  <option value="always_cold">Always feels too cold</option>
+                  <option value="variable_seasons">Varies with seasons</option>
+                  <option value="hot_head_cold_body">
+                    Hot head, cold extremities
+                  </option>
+                  <option value="cold_spots">Cold spots on body</option>
+                </Form.Control>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Thirst Pattern</Form.Label>
+                <Form.Control
+                  as="select"
+                  name="thirst"
+                  value={formData.thirst}
+                  onChange={handleChange}
+                  isInvalid={!!errors.thirst}
+                >
+                  <option value="">Thirst characteristics</option>
+                  <option value="excessive_large">
+                    Excessive thirst, large quantities
+                  </option>
+                  <option value="frequent_small">Frequent small sips</option>
+                  <option value="thirstless">Rarely feels thirsty</option>
+                  <option value="thirst_fever">
+                    Only thirsty during fever
+                  </option>
+                  <option value="cold_drinks">Desires cold drinks</option>
+                  <option value="warm_drinks">Desires warm drinks</option>
+                </Form.Control>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Sleep time pattern</Form.Label>
+                <Form.Control
+                  as="select"
+                  name="sleeppattern"
+                  value={formData.sleeppattern}
+                  onChange={handleChange}
+                  isInvalid={!!errors.sleeppattern}
+                >
+                  <option value="">Sleep timing</option>
+                  <option value="early_bed_early_rise">
+                    Early to bed, early to rise
+                  </option>
+                  <option value="night_owl">Night owl, late sleeper</option>
+                  <option value="catnaps_day">Takes catnaps during day</option>
+                  <option value="insomnia_3am">
+                    Wakes around 3 AM regularly
+                  </option>
+                  <option value="unrefreshing">Never feels refreshed</option>
+                </Form.Control>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formSubstanceUse">
+                <Form.Label>Sleep Environment Needs</Form.Label>
+                {[
+                  "Complete darkness",
+                  "Some light",
+                  "Fresh air/window open",
+                  "Warm room",
+                  "Cool room",
+                  "Complete silence",
+                  "Background noise",
+                  "Multiple pillows",
+                  "Firm mattress",
+                  "Soft mattress",
+                ].map((option, idx) => (
+                  <Form.Check
+                    key={idx}
+                    type="checkbox"
+                    label={option}
+                    name="sleepenv"
+                    value={option}
+                    checked={formData.sleepenv?.includes(option)}
+                    onChange={handleCheckboxChange}
+                    id={`sleepenv-${idx}`}
+                  />
+                ))}
+              </Form.Group>
+            </>
+          )}
+
+          {step == 8 && (
+            <>
+              <Form.Group as={Row} className="mb-3" controlId="formImage">
+                <Form.Label column sm={2} style={{ textAlign: "right" }}>
+                  Medical Records:
+                </Form.Label>
+                <Col sm={10}>
+                  <Form.Control
+                    type="file"
+                    name="image"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.image}
+                  </Form.Control.Feedback>
+                </Col>
+                <Col sm={2}></Col>
+                <Col sm={3} className="mt-3">
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      style={{
+                        width: "100px",
+                        height: "100px",
+                        objectFit: "cover",
+                        borderRadius: "5px",
+                        border: "1px solid #ddd",
+                      }}
+                    />
+                  )}
+                </Col>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Pathology-Symptomatology Correlation</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Pathology-Symptomatology Correlation"
+                  name="pathsymptoms"
+                  value={formData.pathsymptoms}
+                  onChange={handleChange}
+                  isInvalid={!!errors.pathsymptoms}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.pathsymptoms}
+                </Form.Control.Feedback>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Miasmatic Analysis from Records</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Miasmatic Analysis from Records"
+                  name="miasanalysis"
+                  value={formData.miasanalysis}
+                  onChange={handleChange}
+                  isInvalid={!!errors.miasanalysis}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.miasanalysis}
+                </Form.Control.Feedback>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Constitutional Assessment from Records</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Constitutional Assessment from Records"
+                  name="constassess"
+                  value={formData.constassess}
+                  onChange={handleChange}
+                  isInvalid={!!errors.constassess}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.constassess}
+                </Form.Control.Feedback>
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formTitle">
+                <Form.Label>Therapeutic Challenges & Considerations</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Therapeutic Challenges & Considerations"
+                  name="therachallenge"
+                  value={formData.therachallenge}
+                  onChange={handleChange}
+                  isInvalid={!!errors.therachallenge}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.therachallenge}
+                </Form.Control.Feedback>
+              </Form.Group>
+            </>
+          )}
+
           <div className="d-flex justify-content-between mt-4">
             {step > 1 && (
               <Button variant="secondary" onClick={handleBack}>
                 Back
               </Button>
             )}
-            {step < 6 ? (
+            {step < 8 ? (
               <Button variant="primary" onClick={handleNext}>
                 Next
               </Button>

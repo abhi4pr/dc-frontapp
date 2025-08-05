@@ -16,7 +16,7 @@ const Register = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await axios.post(`${API_URL}/auth/register`, {
         email,
         password,
         name,
@@ -25,8 +25,7 @@ const Register = () => {
       });
 
       const { token } = response.data;
-      // localStorage.setItem("token", token);
-      alert("Login successful");
+      alert("Successfully Register");
       navigate("/app/dashboard");
     } catch (error) {
       if (error.response && error.response.data) {

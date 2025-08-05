@@ -5,6 +5,7 @@ import { Card, Row, Col } from "react-bootstrap";
 import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -20,13 +21,15 @@ const Login = () => {
 
       const { token } = response.data;
       localStorage.setItem("token", token);
-      alert("Login successful");
+      toast.success("Login Success");
       navigate("/app/dashboard");
     } catch (error) {
       if (error.response && error.response.data) {
-        alert(error.response.data.message || "Invalid email or password.");
+        toast.error(
+          error.response.data.message || "Invalid email or password."
+        );
       } else {
-        alert("An error occurred during login.");
+        toast.error("An error occurred during login.");
       }
       console.error("Login error:", error);
     }
