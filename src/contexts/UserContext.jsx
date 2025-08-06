@@ -3,7 +3,7 @@ import { createContext, useState } from "react";
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // null means not logged in
+  const [user, setUser] = useState({}); // null means not logged in
 
   const login = (userData) => {
     setUser(userData);

@@ -2,9 +2,6 @@ import React, { useState, useEffect, useContext } from "react";
 import { Card, Row, Button, Col } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import DataTable from "react-data-table-component";
-import axios from "axios";
-import { API_URL } from "../../constants";
-import { confirmAlert } from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { toast } from "react-toastify";
 import Loader from "./Loader";
@@ -15,7 +12,7 @@ import { UserContext } from "../../contexts/UserContext";
 const QRGenerator = () => {
   const [search, setSearch] = useState("");
   const [data, setData] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const { user } = useContext(UserContext);
 
   return (

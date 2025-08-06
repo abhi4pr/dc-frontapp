@@ -22,6 +22,7 @@ const Login = () => {
         password,
       });
 
+      localStorage.setItem("token", response.data.token);
       login(response.data.user);
       toast.success("Login Success");
       navigate("/app/dashboard");

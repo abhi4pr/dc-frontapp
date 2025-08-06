@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { ListGroup, Dropdown, Card } from "react-bootstrap";
 import PerfectScrollbar from "react-perfect-scrollbar";
@@ -6,10 +6,12 @@ import avatar1 from "../../../../assets/images/user/avatar-1.jpg";
 import avatar2 from "../../../../assets/images/user/avatar-2.jpg";
 import avatar3 from "../../../../assets/images/user/avatar-3.jpg";
 import avatar4 from "../../../../assets/images/user/avatar-4.jpg";
+import { UserContext } from "../../../../contexts/UserContext";
 
 const NavRight = () => {
   const [listOpen, setListOpen] = useState(false);
   const [doctorData, setDoctorData] = useState({});
+  const { user } = useContext(UserContext);
 
   const notiData = [
     {
@@ -36,11 +38,6 @@ const NavRight = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   };
-
-  useEffect(() => {
-    const getDoctorData = JSON.parse(localStorage.getItem("user"));
-    setDoctorData(getDoctorData);
-  }, []);
 
   return (
     <React.Fragment>
@@ -134,7 +131,7 @@ const NavRight = () => {
                           />
                           <Card.Body className="p-0">
                             <p>
-                              <strong>{data.name}</strong>
+                              <strong>{"name"}</strong>
                               <span className="n-time text-muted">
                                 <i className="icon feather icon-clock me-2" />
                                 {data.activity}
@@ -187,7 +184,7 @@ const NavRight = () => {
             <Dropdown.Menu align="end" className="profile-notification">
               <div className="pro-head">
                 <img src={avatar1} className="img-radius" alt="User Profile" />
-                <span>{doctorData.name}</span>
+                <span>{user?.name}</span>
               </div>
               <ListGroup
                 as="ul"

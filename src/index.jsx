@@ -9,11 +9,11 @@ import { UserProvider } from "./contexts/UserContext";
 const container = document.getElementById("root");
 const root = createRoot(container); // createRoot(container!) if you use TypeScript
 root.render(
-  <ConfigProvider>
-    <UserProvider>
+  <UserProvider>
+    <ConfigProvider>
       <App />
-    </UserProvider>
-  </ConfigProvider>
+    </ConfigProvider>
+  </UserProvider>
 );
 
 reportWebVitals();
