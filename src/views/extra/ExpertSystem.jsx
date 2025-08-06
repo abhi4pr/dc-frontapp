@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, Row, Col, Form, Button } from "react-bootstrap";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../utility/api";
+import { UserContext } from "../../contexts/UserContext";
 
 const ExpertSystem = () => {
   const navigate = useNavigate();
   const { dietId } = useParams();
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    calories: "",
-    image: null,
+    dr1: "",
+    dr2: "",
+    symptoms: "",
   });
-  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const { user, logout } = useContext(UserContext);
+  const [data, setData] = useState("");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -27,39 +27,20 @@ const ExpertSystem = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!validateForm()) {
-      toast.error("Please fill all required fields.");
-      return;
-    }
-    setLoading(true);
-
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("description", formData.description);
-    data.append("category", formData.category);
-    data.append("calories", formData.calories);
-    if (formData.image) {
-      data.append("image", formData.image);
-    }
-
     try {
-      if (dietId) {
-        await api.put(`${API_URL}/diets/${dietId}`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Diet updated successfully!");
-      } else {
-        await api.post(`${API_URL}/diets/`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Diet added successfully!");
-      }
-      navigate("/diets");
+      setLoading(true);
+      const response = await api.post(
+        `${API_URL}/ai/send_compare_data/${user?._id}`,
+        { dr1: formData.dr1, dr2: formData.dr2, symptoms: formData.symptoms }
+      );
+      setData(response.data.data);
     } catch (error) {
-      console.error("Error submitting form:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to add Diet.";
-      toast.error(errorMessage);
+      if (error.response && error.response.data) {
+        toast.error(error.response.data.message || "An error occurred.");
+      } else {
+        toast.error("An error occurred.");
+      }
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
@@ -72,10 +53,14 @@ const ExpertSystem = () => {
           <h4 className="fw-bold">{"Compare experts"}</h4>
           <p className="text-muted">{"Compare experts"}</p>
         </div>
-        <Form.Group as={Row} className="mb-3 align-items-center">
+        <Form.Group
+          as={Row}
+          className="mb-3 align-items-center"
+          onSubmit={handleSubmit}
+        >
           <Col sm={5}>
             <Form.Label>Select Doctor</Form.Label>
-            <Form.Control as="select" name="leftSelect" onChange={handleChange}>
+            <Form.Control as="select" name="dr1" onChange={handleChange}>
               <option value="">Select an option</option>
               <option value="Samuel Hahnemann">Samuel Hahnemann</option>
               <option value="Constantine Hering">Constantine Hering</option>
@@ -108,11 +93,7 @@ const ExpertSystem = () => {
 
           <Col sm={5}>
             <Form.Label>Select Doctor</Form.Label>
-            <Form.Control
-              as="select"
-              name="rightSelect"
-              onChange={handleChange}
-            >
+            <Form.Control as="select" name="dr2" onChange={handleChange}>
               <option value="">Select an option</option>
               <option value="Samuel Hahnemann">Samuel Hahnemann</option>
               <option value="Constantine Hering">Constantine Hering</option>
@@ -146,9 +127,9 @@ const ExpertSystem = () => {
             <Form.Control
               as="textarea"
               rows={4}
-              name="description"
+              name="symptoms"
               placeholder="Enter Patient Symptoms"
-              value={formData.description}
+              value={formData.symptoms}
               onChange={handleChange}
             />
           </Col>
@@ -162,6 +143,8 @@ const ExpertSystem = () => {
           </Col>
         </Form.Group>
       </Card>
+
+      {data && <p>{data}</p>}
     </Row>
   );
 };

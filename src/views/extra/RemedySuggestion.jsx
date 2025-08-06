@@ -26,7 +26,7 @@ const RemedySuggestion = () => {
         `${API_URL}/ai/send_search_remedy/${user?._id}`,
         { disease: formData.disease }
       );
-      setData(response.data);
+      setData(response.data.data);
     } catch (error) {
       if (error.response && error.response.data) {
         toast.error(error.response.data.message || "An error occurred.");

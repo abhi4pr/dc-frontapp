@@ -84,9 +84,8 @@ const UserForm = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const getDoctorData = JSON.parse(localStorage.getItem("user"));
     try {
-      const response = await api.get(`${API_URL}/users/${getDoctorData._id}`);
+      const response = await api.get(`${API_URL}/users/${id}`);
       setDoctorData(response.data?.user);
     } catch (error) {
       console.error("Error fetching data", error);
