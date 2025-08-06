@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, Row, Col, Spinner } from "react-bootstrap";
-
+import { UserContext } from "../../../contexts/UserContext";
 import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
@@ -11,6 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { login } = useContext(UserContext);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -21,8 +22,7 @@ const Login = () => {
         password,
       });
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      login(response.data.user);
       toast.success("Login Success");
       navigate("/app/dashboard");
     } catch (error) {

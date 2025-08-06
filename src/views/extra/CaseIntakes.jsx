@@ -154,17 +154,17 @@ const CaseIntakes = () => {
 
     try {
       if (audioId) {
-        await api.put(`${API_URL}/audios/${audioId}`, data, {
+        await api.put(`${API_URL}/cases/${audioId}`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Audio updated successfully!");
       } else {
-        await api.post(`${API_URL}/audios/`, data, {
+        await api.post(`${API_URL}/cases/add_post`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         toast.success("Audio added successfully!");
       }
-      navigate("/audios");
+      navigate("/patient-cases");
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("Submission failed");

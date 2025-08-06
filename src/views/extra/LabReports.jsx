@@ -12,10 +12,7 @@ const LabReports = () => {
   const [search, setSearch] = useState("");
   const [data, setData] = useState([]);
   const [filterData, setFilterData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -122,7 +119,7 @@ const LabReports = () => {
           <Form.Group as={Row} className="mb-3">
             <Col sm={{ span: 10, offset: 2 }} className="d-flex gap-2">
               <Button type="submit" variant="primary" disabled={loading}>
-                {loading ? "Submitting..." : dietId ? "Update" : "Submit"}
+                {loading ? "Submitting..." : "Submit"}
               </Button>
               <Button
                 type="button"

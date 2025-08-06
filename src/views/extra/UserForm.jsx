@@ -4,11 +4,13 @@ import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../utility/api";
+import { FRONT_URL } from "../../constants";
 
 const UserForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [step, setStep] = useState(1);
+  const [data, setData] = useState({});
   const [formData, setFormData] = useState({
     patientname: "",
     patientage: "",
@@ -82,9 +84,10 @@ const UserForm = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    const getDoctorData = JSON.parse(localStorage.getItem("user"));
     try {
-      const response = await api.get(`${API_URL}?id=${id}`);
-      setDoctorData(response.data);
+      const response = await api.get(`${API_URL}/users/${getDoctorData._id}`);
+      setDoctorData(response.data?.user);
     } catch (error) {
       console.error("Error fetching data", error);
     }
@@ -193,6 +196,7 @@ const UserForm = () => {
     <div className="container mt-4" style={{ maxWidth: "100%" }}>
       <Card className="p-4">
         <h4 className="mb-3 text-center fw-bold">{"Share your details"}</h4>
+        <h4>To Dr. {doctorData?.name}</h4>
         <ProgressBar now={(step / 8) * 100} className="mb-4" />
         <Form onSubmit={handleSubmit}>
           {step === 1 && (
