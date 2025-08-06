@@ -77,8 +77,28 @@ const ExpertSystem = () => {
             <Form.Label>Select Doctor</Form.Label>
             <Form.Control as="select" name="leftSelect" onChange={handleChange}>
               <option value="">Select an option</option>
-              <option value="option1">Option 1</option>
-              <option value="option2">Option 2</option>
+              <option value="Samuel Hahnemann">Samuel Hahnemann</option>
+              <option value="Constantine Hering">Constantine Hering</option>
+              <option value="James Tyler Kent">James Tyler Kent</option>
+              <option value="C.M.F. Boenninghausen">
+                C.M.F. Boenninghausen
+              </option>
+              <option value="Adolph Lippe">Adolph Lippe</option>
+              <option value="H.N. Guernsey">H.N. Guernsey</option>
+              <option value="E.A. Farrington">E.A. Farrington</option>
+              <option value="Richard Hughes">Richard Hughes</option>
+              <option value="J.H. Clarke">J.H. Clarke</option>
+              <option value="Margaret Tyler">Margaret Tyler</option>
+              <option value="William Boericke">William Boericke</option>
+              <option value="G.B. Nash">G.B. Nash</option>
+              <option value="Frederik Schroyens">Frederik Schroyens</option>
+              <option value="George Vithoulkas">George Vithoulkas</option>
+              <option value="Rajesh Shah">Rajesh Shah</option>
+              <option value="Farokh Master">Farokh Master</option>
+              <option value="Rajan Sankaran">Rajan Sankaran</option>
+              <option value="Prafull Vijayakar">Prafull Vijayakar</option>
+              <option value="Luc De Schepper">Luc De Schepper</option>
+              <option value="Robin Murphy">Robin Murphy</option>
             </Form.Control>
           </Col>
 
@@ -94,8 +114,28 @@ const ExpertSystem = () => {
               onChange={handleChange}
             >
               <option value="">Select an option</option>
-              <option value="optionA">Option A</option>
-              <option value="optionB">Option B</option>
+              <option value="Samuel Hahnemann">Samuel Hahnemann</option>
+              <option value="Constantine Hering">Constantine Hering</option>
+              <option value="James Tyler Kent">James Tyler Kent</option>
+              <option value="C.M.F. Boenninghausen">
+                C.M.F. Boenninghausen
+              </option>
+              <option value="Adolph Lippe">Adolph Lippe</option>
+              <option value="H.N. Guernsey">H.N. Guernsey</option>
+              <option value="E.A. Farrington">E.A. Farrington</option>
+              <option value="Richard Hughes">Richard Hughes</option>
+              <option value="J.H. Clarke">J.H. Clarke</option>
+              <option value="Margaret Tyler">Margaret Tyler</option>
+              <option value="William Boericke">William Boericke</option>
+              <option value="G.B. Nash">G.B. Nash</option>
+              <option value="Frederik Schroyens">Frederik Schroyens</option>
+              <option value="George Vithoulkas">George Vithoulkas</option>
+              <option value="Rajesh Shah">Rajesh Shah</option>
+              <option value="Farokh Master">Farokh Master</option>
+              <option value="Rajan Sankaran">Rajan Sankaran</option>
+              <option value="Prafull Vijayakar">Prafull Vijayakar</option>
+              <option value="Luc De Schepper">Luc De Schepper</option>
+              <option value="Robin Murphy">Robin Murphy</option>
             </Form.Control>
           </Col>
         </Form.Group>

@@ -5,9 +5,9 @@ import { API_URL } from "../../constants";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../utility/api";
 
-const CaseIntakes = () => {
+const UserForm = () => {
   const navigate = useNavigate();
-  const { audioId } = useParams();
+  const { id } = useParams();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     patientname: "",
@@ -78,6 +78,22 @@ const CaseIntakes = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [doctorData, setDoctorData] = useState({});
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(`${API_URL}?id=${id}`);
+      setDoctorData(response.data);
+    } catch (error) {
+      console.error("Error fetching data", error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -176,7 +192,7 @@ const CaseIntakes = () => {
   return (
     <div className="container mt-4" style={{ maxWidth: "100%" }}>
       <Card className="p-4">
-        <h4 className="mb-3 text-center fw-bold">{"Add Case"}</h4>
+        <h4 className="mb-3 text-center fw-bold">{"Share your details"}</h4>
         <ProgressBar now={(step / 8) * 100} className="mb-4" />
         <Form onSubmit={handleSubmit}>
           {step === 1 && (
@@ -1476,4 +1492,4 @@ const CaseIntakes = () => {
   );
 };
 
-export default CaseIntakes;
+export default UserForm;

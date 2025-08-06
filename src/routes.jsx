@@ -56,6 +56,11 @@ export const routes = [
   },
   {
     exact: "true",
+    path: "/user-form/:id",
+    element: lazy(() => import("./views/extra/UserForm")),
+  },
+  {
+    exact: "true",
     path: "/auth/login",
     element: lazy(() => import("./views/auth/signup/Login")),
   },
@@ -130,7 +135,11 @@ export const routes = [
         path: "/qr-generator",
         element: lazy(() => import("./views/extra/QRGenerator")),
       },
-
+      {
+        exact: "true",
+        path: "/profile",
+        element: lazy(() => import("./views/extra/Profile")),
+      },
       {
         path: "*",
         exact: "true",

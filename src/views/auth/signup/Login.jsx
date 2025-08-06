@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Card, Row, Col } from "react-bootstrap";
+import { Card, Row, Col, Spinner } from "react-bootstrap";
 
 import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
@@ -11,16 +11,18 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password,
       });
 
-      const { token } = response.data;
-      localStorage.setItem("token", token);
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       toast.success("Login Success");
       navigate("/app/dashboard");
     } catch (error) {
@@ -32,6 +34,8 @@ const Login = () => {
         toast.error("An error occurred during login.");
       }
       console.error("Login error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,8 +72,23 @@ const Login = () => {
                   <button
                     className="btn btn-primary btn-block mb-4"
                     onClick={handleLogin}
+                    disabled={loading}
                   >
-                    Login
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                        />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
                   </button>
                   <br />
                   <Link to="/auth/register" className="">

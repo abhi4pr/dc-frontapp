@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, Row, Col } from "react-bootstrap";
-
+import { toast } from "react-toastify";
 import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
@@ -15,8 +15,26 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!name || name.trim().length === 0) {
+      toast.error("Name is required.");
+      return;
+    }
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      toast.error("Password must be at least 6 characters long.");
+      return;
+    }
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
+      const response = await axios.post(`${API_URL}/auth/signup`, {
         email,
         password,
         name,
@@ -24,14 +42,15 @@ const Register = () => {
         address,
       });
 
-      const { token } = response.data;
-      alert("Successfully Register");
-      navigate("/app/dashboard");
+      toast.success("Successfully Register");
+      navigate("/auth/login");
     } catch (error) {
       if (error.response && error.response.data) {
-        alert(error.response.data.message || "Invalid email or password.");
+        toast.error(
+          error.response.data.message || "Invalid email or password."
+        );
       } else {
-        alert("An error occurred during login.");
+        toast.error("An error occurred during login.");
       }
       console.error("Login error:", error);
     }
@@ -101,7 +120,7 @@ const Register = () => {
                     className="btn btn-primary btn-block mb-4"
                     onClick={handleLogin}
                   >
-                    Resgiter
+                    Register
                   </button>
                   <br />
                   <Link to="/auth/login" className="">
