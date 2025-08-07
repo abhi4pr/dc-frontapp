@@ -34,8 +34,9 @@ const QRGenerator = () => {
               <>
                 <h3>This is your sharable link</h3>
                 <a
-                  href={`${FRONT_URL}?id=${user?._id}`}
-                >{`${FRONT_URL}?id=${user?._id}`}</a>
+                  href={`${FRONT_URL}/user-form/${user?._id}`}
+                  target="blank"
+                >{`${FRONT_URL}/user-form/${user?._id}`}</a>
               </>
             )}
           </Card.Body>

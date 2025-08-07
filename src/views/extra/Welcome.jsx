@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Container, Button, Row, Col } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-// import './HomePage.css';
+import api from "../../utility/api";
+import { API_URL } from "../../constants";
 
 const Welcome = () => {
   const navigate = useNavigate();
+
+  const fetchData = async () => {
+    try {
+      const response = await api.get(`${API_URL}/`);
+    } catch (error) {
+      console.error("Error fetching data", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   return (
     <div>
       {/* Background Visuals */}

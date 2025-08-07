@@ -14,7 +14,7 @@ const RemedySuggestion = () => {
     disease: "",
   });
   const [errors, setErrors] = useState({});
-  const [data, setData] = useState({});
+  const [data, setData] = useState("");
   const navigate = useNavigate();
   const { user, logout } = useContext(UserContext);
 
@@ -54,13 +54,13 @@ const RemedySuggestion = () => {
         <Form onSubmit={handleSubmit}>
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
             <Form.Label column sm={2} style={{ textAlign: "right" }}>
-              Title:
+              disease:
             </Form.Label>
             <Col sm={10}>
               <Form.Control
                 type="text"
-                placeholder="Enter title"
-                name="title"
+                placeholder="Enter Diesease"
+                name="disease"
                 value={formData.title}
                 onChange={handleChange}
                 isInvalid={!!errors.title}
@@ -86,7 +86,7 @@ const RemedySuggestion = () => {
             </Col>
           </Form.Group>
         </Form>
-        {data && <p>{data?.show}</p>}
+        {data && <p>{data}</p>}
       </Card>
     </Row>
   );

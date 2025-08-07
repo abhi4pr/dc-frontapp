@@ -27,18 +27,33 @@ const LabReports = () => {
     event.preventDefault();
     try {
       setLoading(true);
+
+      const form = new FormData();
+      form.append("title", formData.title);
+      form.append("description", formData.description);
+      if (formData.report) {
+        form.append("report", formData.report);
+      }
+
       const response = await api.post(
         `${API_URL}/ai/send_ai_report/${user?._id}`,
-        { report: formData.report }
+        form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
+
       setData(response.data.data);
+      toast.success("Report submitted successfully");
     } catch (error) {
       if (error.response && error.response.data) {
         toast.error(error.response.data.message || "An error occurred.");
       } else {
         toast.error("An error occurred.");
       }
-      console.error("Login error:", error);
+      console.error("Submission error:", error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +72,7 @@ const LabReports = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
-      setFormData({ ...formData, image: file });
+      setFormData({ ...formData, report: file });
     }
   };
 
@@ -105,12 +120,12 @@ const LabReports = () => {
 
           <Form.Group as={Row} className="mb-3" controlId="formImage">
             <Form.Label column sm={2} style={{ textAlign: "right" }}>
-              image:
+              Report image:
             </Form.Label>
             <Col sm={10}>
               <Form.Control
                 type="file"
-                name="image"
+                name="report"
                 accept="image/*"
                 onChange={handleImageChange}
                 // isInvalid={!!errors.image}
@@ -153,6 +168,7 @@ const LabReports = () => {
           </Form.Group>
         </Form>
       </Card>
+      {data && <p>{data}</p>}
     </Row>
   );
 };

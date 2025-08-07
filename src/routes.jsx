@@ -81,6 +81,11 @@ export const routes = [
       },
       {
         exact: "true",
+        path: "/case-details/:id",
+        element: lazy(() => import("./views/extra/Details")),
+      },
+      {
+        exact: "true",
         path: "/case-intakes",
         element: lazy(() => import("./views/extra/CaseIntakes")),
       },

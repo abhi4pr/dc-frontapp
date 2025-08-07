@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Row, Col, Form } from "react-bootstrap";
+import { UserContext } from "../../contexts/UserContext";
+import api from "../../utility/api";
+import { API_URL } from "../../constants";
+import { Link } from "react-router-dom";
 
-// Example static data
 const staticData = [
   {
     id: 1,
@@ -25,6 +28,24 @@ const staticData = [
 
 const PatientCases = () => {
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [patientCase, setPatientCase] = useState([]);
+  const { user } = useContext(UserContext);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(`${API_URL}/cases/${user?._id}`);
+      setPatientCase(response.data);
+    } catch (error) {
+      console.error("Error fetching data", error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Filter data based on search term
   const filteredData = staticData.filter(
@@ -46,15 +67,21 @@ const PatientCases = () => {
         />
 
         {filteredData.map((item) => (
-          <Card key={item.id} className="mb-3 w-100">
-            <Card.Body>
-              <Card.Title>{item.title}</Card.Title>
-              <Card.Subtitle className="mb-2 text-muted">
-                {item.category}
-              </Card.Subtitle>
-              <Card.Text>{item.description}</Card.Text>
-            </Card.Body>
-          </Card>
+          <Link
+            key={item.id}
+            to={`/case-details/${item.id}`}
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
+            <Card className="mb-3 w-100">
+              <Card.Body>
+                <Card.Title>{item.title}</Card.Title>
+                <Card.Subtitle className="mb-2 text-muted">
+                  {item.category}
+                </Card.Subtitle>
+                <Card.Text>{item.description}</Card.Text>
+              </Card.Body>
+            </Card>
+          </Link>
         ))}
 
         {filteredData.length === 0 && (
