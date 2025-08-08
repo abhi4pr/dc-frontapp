@@ -12,11 +12,24 @@ const AIDiagnosis = () => {
   const [filterData, setFilterData] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    navigate("/patient-cases");
-  }, []);
+  useEffect(() => {}, []);
 
-  return <React.Fragment></React.Fragment>;
+  return (
+    <React.Fragment>
+      <Row className="justify-content-center">
+        <Card>
+          <Card.Body>
+            <Row style={{ marginBottom: 20 }}>
+              <div>
+                <h4 className="fw-bold">Coming soon</h4>
+                <p className="text-muted">Coming soon</p>
+              </div>
+            </Row>
+          </Card.Body>
+        </Card>
+      </Row>
+    </React.Fragment>
+  );
 };
 
 export default AIDiagnosis;

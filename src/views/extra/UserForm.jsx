@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, Form, Button, ProgressBar, Col } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
@@ -75,6 +75,7 @@ const UserForm = () => {
     miasanalysis: "",
     constassess: "",
     therachallenge: "",
+    user: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -169,20 +170,23 @@ const UserForm = () => {
     if (formData.image) {
       data.append("image", formData.image);
     }
+    if (id) {
+      data.append("user", id);
+    }
 
     try {
       if (audioId) {
         await api.put(`${API_URL}/audios/${audioId}`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Audio updated successfully!");
+        toast.success("cases updated successfully!");
       } else {
-        await api.post(`${API_URL}/audios/`, data, {
+        await api.post(`${API_URL}/cases/add_post/`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Audio added successfully!");
+        toast.success("cases added successfully!");
       }
-      navigate("/audios");
+      navigate("/app/dashboard");
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("Submission failed");
@@ -1485,7 +1489,7 @@ const UserForm = () => {
               </Button>
             ) : (
               <Button variant="success" type="submit" disabled={loading}>
-                {loading ? "Submitting..." : audioId ? "Update" : "Submit"}
+                {loading ? "Submitting..." : "Submit"}
               </Button>
             )}
           </div>

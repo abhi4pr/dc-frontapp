@@ -106,14 +106,18 @@ const NavRight = () => {
               id="dropdown-basic"
             >
               <img
-                src={avatar1}
+                src={user?.profile_pic}
                 className="img-radius wid-40"
                 alt="User Profile"
               />
             </Dropdown.Toggle>
             <Dropdown.Menu align="end" className="profile-notification">
               <div className="pro-head">
-                <img src={avatar1} className="img-radius" alt="User Profile" />
+                <img
+                  src={user?.profile_pic}
+                  className="img-radius"
+                  alt="User Profile"
+                />
                 <span>{user?.name}</span>
               </div>
               <ListGroup

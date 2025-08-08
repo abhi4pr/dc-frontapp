@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, Form, Button, ProgressBar, Col } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../utility/api";
+import { UserContext } from "../../contexts/UserContext";
 
 const CaseIntakes = () => {
   const navigate = useNavigate();
@@ -73,11 +74,13 @@ const CaseIntakes = () => {
     miasanalysis: "",
     constassess: "",
     therachallenge: "",
+    user: "",
   });
 
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const { user, logout } = useContext(UserContext);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -151,18 +154,22 @@ const CaseIntakes = () => {
     if (formData.image) {
       data.append("image", formData.image);
     }
+    if (user?.id) {
+      data.append("user", user.id);
+    }
 
     try {
       if (audioId) {
         await api.put(`${API_URL}/cases/${audioId}`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Audio updated successfully!");
+        toast.success("Cases updated successfully!");
       } else {
         await api.post(`${API_URL}/cases/add_post`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        toast.success("Audio added successfully!");
+
+        toast.success("Cases added successfully!");
       }
       navigate("/patient-cases");
     } catch (error) {
@@ -1465,12 +1472,21 @@ const CaseIntakes = () => {
                 Next
               </Button>
             ) : (
-              <Button variant="success" type="submit" disabled={loading}>
-                {loading ? "Submitting..." : audioId ? "Update" : "Submit"}
+              <Button
+                variant="success"
+                type="submit"
+                disabled={loading || user?.hit_count == 0}
+              >
+                {loading ? "Submitting..." : "Submit"}
               </Button>
             )}
           </div>
         </Form>
+        {user?.hit_count === 0 && (
+          <p className="text-danger mt-2">
+            You have reached your limit please recharge your limit.
+          </p>
+        )}
       </Card>
     </div>
   );

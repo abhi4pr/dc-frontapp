@@ -12,7 +12,7 @@ const Repertory = () => {
   const [search, setSearch] = useState("");
   const [data, setData] = useState("");
   const [filterData, setFilterData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     disease: "",
   });

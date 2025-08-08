@@ -36,11 +36,9 @@ const Profile = () => {
         phone: user.phone || "",
         hit_count: user?.hit_count || 0,
         hit_limit: user?.hit_limit || 0,
-        profile_pic: null,
+        profile_pic: user?.profile_pic,
       });
-      setImagePreview(
-        user.profile_pic ? `${API_URL}/${user.profile_pic}` : null
-      );
+      setImagePreview(user.profile_pic ? `${user.profile_pic}` : null);
     }
   }, [user]);
 

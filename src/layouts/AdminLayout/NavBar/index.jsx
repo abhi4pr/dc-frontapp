@@ -1,15 +1,10 @@
 import React, { useContext, useState } from "react";
 import { Link } from "react-router-dom";
-
-// project import
 import NavLeft from "./NavLeft";
 import NavRight from "./NavRight";
 
 import { ConfigContext } from "../../../contexts/ConfigContext";
 import * as actionType from "../../../store/actions";
-
-// assets
-import logo from "../../../assets/images/logo.png";
 
 // ==============================|| NAV BAR ||============================== //
 
