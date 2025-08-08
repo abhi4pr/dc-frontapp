@@ -66,6 +66,11 @@ export const routes = [
   },
   {
     exact: "true",
+    path: "/auth/reset-password",
+    element: lazy(() => import("./views/auth/signup/ResetPassword")),
+  },
+  {
+    exact: "true",
     path: "/auth/login",
     element: lazy(() => import("./views/auth/signup/Login")),
   },

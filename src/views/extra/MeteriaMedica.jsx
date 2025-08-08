@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, Row, Button, Form, Col } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import DataTable from "react-data-table-component";
@@ -7,43 +7,45 @@ import { API_URL } from "../../constants";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import api from "../../utility/api";
 import Loader from "./Loader";
+import { UserContext } from "../../contexts/UserContext";
 
 const MeteriaMedica = () => {
   const [search, setSearch] = useState("");
-  const [data, setData] = useState([]);
+  const [data, setData] = useState("");
   const [filterData, setFilterData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    medicine: [],
-    // image: null,
+    // title: "",
+    medicine_name: "",
   });
   const [errors, setErrors] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
+  const { user, logout } = useContext(UserContext);
 
-  const handleSubmit = () => {};
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      setLoading(true);
+      const response = await api.post(
+        `${API_URL}/ai/send_medicine_detail/${user?._id}`,
+        { medicine_name: formData.medicine_name }
+      );
+      setData(response.data.data);
+    } catch (error) {
+      if (error.response && error.response.data) {
+        toast.error(error.response.data.message || "An error occurred.");
+      } else {
+        toast.error("An error occurred.");
+      }
+      console.error("Login error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = () => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleCheckboxChange = (e) => {
-    const { value, checked } = e.target;
-    setFormData((prev) => {
-      const currentDoctors = prev.medicine || [];
-      if (checked) {
-        return { ...prev, medicine: [...currentDoctors, value] };
-      } else {
-        return {
-          ...prev,
-          medicine: currentDoctors.filter((item) => item !== value),
-        };
-      }
-    });
   };
 
   return (
@@ -56,24 +58,24 @@ const MeteriaMedica = () => {
         <Form onSubmit={handleSubmit}>
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
             <Form.Label column sm={2} style={{ textAlign: "right" }}>
-              Title:
+              Medicine:
             </Form.Label>
             <Col sm={10}>
               <Form.Control
                 type="text"
-                placeholder="Enter title"
-                name="title"
-                value={formData.title}
+                placeholder="Enter Remedy Name"
+                name="medicine_name"
+                value={formData.medicine_name}
                 onChange={handleChange}
-                isInvalid={!!errors.title}
+                isInvalid={!!errors.medicine_name}
               />
               <Form.Control.Feedback type="invalid">
-                {errors.title}
+                {errors.medicine_name}
               </Form.Control.Feedback>
             </Col>
           </Form.Group>
 
-          <Form.Group as={Row} className="mb-3" controlId="formSubstanceUse">
+          {/* <Form.Group as={Row} className="mb-3" controlId="formSubstanceUse">
             <Form.Label column sm={2} style={{ textAlign: "right" }}>
               medicine ?
             </Form.Label>
@@ -93,23 +95,34 @@ const MeteriaMedica = () => {
                 )
               )}
             </Col>
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Group as={Row} className="mb-3">
             <Col sm={{ span: 10, offset: 2 }} className="d-flex gap-2">
-              <Button type="submit" variant="primary" disabled={loading}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={loading || user.hit_count == 0}
+              >
                 {loading ? "Submitting..." : "Submit"}
               </Button>
               <Button
                 type="button"
                 variant="danger"
-                onClick={() => navigate("/diets")}
+                onClick={() => navigate("/app/dashboard")}
               >
                 Cancel
               </Button>
             </Col>
           </Form.Group>
         </Form>
+
+        {user?.hit_count == 0 && (
+          <p className="text-danger mt-2">
+            You have reached your limit please recharge your limit.
+          </p>
+        )}
+        {data && <p>{data}</p>}
       </Card>
     </Row>
   );
