@@ -7,32 +7,25 @@ import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
 import { toast } from "react-toastify";
 
-const Login = () => {
+const ForgetPassword = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { login } = useContext(UserContext);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleForget = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await axios.post(`${API_URL}/auth/forget_password`, {
         email,
-        password,
       });
-
-      localStorage.setItem("token", response.data.token);
-      login(response.data.user);
-      toast.success("Login Success");
+      toast.success(
+        "Email Sent, Please check your email for reset your password"
+      );
       navigate("/app/dashboard");
     } catch (error) {
       if (error.response && error.response.data) {
-        toast.error(
-          error.response.data.message || "Invalid email or password."
-        );
-      } else {
-        toast.error("An error occurred during login.");
+        toast.error("Email not exist in our database");
       }
       console.error("Login error:", error);
     } finally {
@@ -49,7 +42,7 @@ const Login = () => {
             <Row className="align-items-center text-center">
               <Col>
                 <Card.Body className="card-body">
-                  <h4 className="mb-3 f-w-400">Doctor's Login</h4>
+                  <h4 className="mb-3 f-w-400">Doctor's Forget Password</h4>
 
                   <div className="input-group mb-3">
                     <input
@@ -60,19 +53,10 @@ const Login = () => {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                  <div className="input-group mb-4">
-                    <input
-                      type="password"
-                      className="form-control"
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
 
                   <button
                     className="btn btn-primary btn-block mb-4"
-                    onClick={handleLogin}
+                    onClick={handleForget}
                     disabled={loading}
                   >
                     {loading ? (
@@ -85,10 +69,10 @@ const Login = () => {
                           aria-hidden="true"
                           className="me-2"
                         />
-                        Logging in...
+                        Checking in...
                       </>
                     ) : (
-                      "Login"
+                      "Get Password"
                     )}
                   </button>
                   <br />
@@ -96,8 +80,8 @@ const Login = () => {
                     Register
                   </Link>
                   <br />
-                  <Link to="/auth/forget-password" className="">
-                    Forget Password
+                  <Link to="/auth/login" className="">
+                    Signin
                   </Link>
                 </Card.Body>
               </Col>
@@ -109,4 +93,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ForgetPassword;

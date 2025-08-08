@@ -154,7 +154,11 @@ const LabReports = () => {
 
           <Form.Group as={Row} className="mb-3">
             <Col sm={{ span: 10, offset: 2 }} className="d-flex gap-2">
-              <Button type="submit" variant="primary" disabled={loading}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={loading || user?.hit_count == 0}
+              >
                 {loading ? "Submitting..." : "Submit"}
               </Button>
               <Button
@@ -167,6 +171,12 @@ const LabReports = () => {
             </Col>
           </Form.Group>
         </Form>
+
+        {user?.hit_count === 0 && (
+          <p className="text-danger mt-2">
+            You have reached your limit please recharge your limit.
+          </p>
+        )}
       </Card>
       {data && <p>{data}</p>}
     </Row>

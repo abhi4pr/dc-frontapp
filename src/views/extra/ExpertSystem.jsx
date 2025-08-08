@@ -144,12 +144,22 @@ const ExpertSystem = () => {
 
           <Form.Group as={Row} className="mb-3">
             <Col sm={12} className="text-end">
-              <Button type="submit" variant="primary" disabled={loading}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={loading || user?.hit_count == 0}
+              >
                 {loading ? "Submitting..." : "Submit"}
               </Button>
             </Col>
           </Form.Group>
         </Form>
+
+        {user?.hit_count === 0 && (
+          <p className="text-danger mt-2">
+            You have reached your limit please recharge your limit.
+          </p>
+        )}
       </Card>
 
       {data && <p>{data}</p>}
