@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, Row, Col } from "react-bootstrap";
 import { toast } from "react-toastify";
@@ -13,6 +13,14 @@ const Register = () => {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    if (token && user) {
+      navigate("/app/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async () => {
     if (!name || name.trim().length === 0) {

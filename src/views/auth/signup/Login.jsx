@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card, Row, Col, Spinner } from "react-bootstrap";
 import { UserContext } from "../../../contexts/UserContext";
@@ -13,6 +13,14 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useContext(UserContext);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    if (token && user) {
+      navigate("/app/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async () => {
     setLoading(true);

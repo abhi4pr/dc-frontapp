@@ -156,6 +156,11 @@ export const routes = [
         element: lazy(() => import("./views/extra/Profile")),
       },
       {
+        exact: "true",
+        path: "/plans",
+        element: lazy(() => import("./views/extra/Plans")),
+      },
+      {
         path: "*",
         exact: "true",
         element: () => <Navigate to={BASE_URL} />,

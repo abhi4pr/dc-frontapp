@@ -255,7 +255,7 @@ const Profile = () => {
               <Button
                 type="button"
                 variant="success"
-                onClick={() => navigate("/app/dashboard")}
+                onClick={() => navigate("/plans")}
               >
                 Upgrade Your Plan
               </Button>
