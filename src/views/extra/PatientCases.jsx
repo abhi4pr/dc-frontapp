@@ -44,7 +44,7 @@ const formatTimeAgo = (iso) => {
 };
 const priorityColor = (p) =>
   p === "High" ? "danger" : p === "Medium" ? "warning" : "success";
-const defaultStatuses = ["New", "Active", "Follow-up", "Closed"];
+const defaultStatuses = ["Active", "Closed"];
 
 /* temporary demo useful fallback (kept) */
 const staticData = [
@@ -162,7 +162,7 @@ const PatientCases = () => {
       setLastFetchAt(new Date().toISOString());
     } catch (err) {
       console.error("Error fetching data", err);
-      setError("Unable to load cases. Please try again.");
+      setError("");
       // keep fallback
     } finally {
       setLoading(false);
@@ -431,13 +431,7 @@ const PatientCases = () => {
               {item.patient?.age ? ` • ${item.patient.age}y` : ""}
             </div>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              <Badge
-                pill
-                bg={priorityColor(item.priority)}
-                style={{ fontSize: 12 }}
-              >
-                {item.priority}
-              </Badge>
+
             </div>
           </div>
 
@@ -462,9 +456,6 @@ const PatientCases = () => {
               alignItems: "center",
             }}
           >
-            <div className="muted">{item.category || "General"}</div>
-            <div className="muted">•</div>
-            <div className="muted">{formatTimeAgo(item.lastUpdated)} ago</div>
             <div
               style={{
                 marginLeft: "auto",
@@ -473,14 +464,7 @@ const PatientCases = () => {
                 alignItems: "center",
               }}
             >
-              <div
-                title="attachments"
-                className="tiny"
-                style={{ display: "flex", gap: 6, alignItems: "center" }}
-              >
-                <IconAttachment />
-                <span>{item.attachments}</span>
-              </div>
+
               <Button
                 variant="outline-secondary"
                 size="sm"
@@ -493,37 +477,6 @@ const PatientCases = () => {
               >
                 View
               </Button>
-              <Dropdown>
-                <Dropdown.Toggle
-                  variant="light"
-                  size="sm"
-                  id={`dd-${item.id}`}
-                />
-                <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => markUrgent(item.id)}>
-                    Mark Urgent
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    onClick={() =>
-                      updateCaseStatusLocally(item.id, "Follow-up")
-                    }
-                  >
-                    Set Follow-up
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    onClick={() => updateCaseStatusLocally(item.id, "Closed")}
-                  >
-                    Close Case
-                  </Dropdown.Item>
-                  <Dropdown.Item
-                    as="div"
-                    className="text-muted"
-                    style={{ fontSize: 12 }}
-                  >
-                    Attachments: {item.attachments}
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
             </div>
           </div>
         </div>
@@ -566,9 +519,7 @@ const PatientCases = () => {
             All Cases
           </h3>
           <div className="muted" style={{ marginTop: 6 }}>
-            {lastFetchAt
-              ? `Updated ${formatTimeAgo(lastFetchAt)} ago`
-              : "No recent sync"}
+            {lastFetchAt ? `Updated ${formatTimeAgo(lastFetchAt)} ago` : ""}
           </div>
         </div>
 
@@ -660,99 +611,6 @@ const PatientCases = () => {
             </div>
           </div>
 
-          <Dropdown>
-            <Dropdown.Toggle
-              variant="outline-secondary"
-              id="filter-dd"
-              size="sm"
-            >
-              Filters
-            </Dropdown.Toggle>
-            <Dropdown.Menu style={{ minWidth: 260 }}>
-              <div style={{ padding: 12 }}>
-                <div style={{ fontSize: 13, marginBottom: 8 }}>Department</div>
-                <Form.Select
-                  aria-label="filter-department"
-                  value={filters.department}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, department: e.target.value }))
-                  }
-                >
-                  {departments.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </Form.Select>
-
-                <div style={{ height: 8 }} />
-
-                <div style={{ fontSize: 13, marginBottom: 8 }}>Priority</div>
-                <Form.Select
-                  aria-label="filter-priority"
-                  value={filters.priority}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, priority: e.target.value }))
-                  }
-                >
-                  {priorities.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </Form.Select>
-
-                <div style={{ height: 8 }} />
-
-                <div style={{ fontSize: 13, marginBottom: 8 }}>Assigned</div>
-                <Form.Select
-                  aria-label="filter-assigned"
-                  value={filters.assignedTo}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, assignedTo: e.target.value }))
-                  }
-                >
-                  {assignedList.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </Form.Select>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 10,
-                  }}
-                >
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() =>
-                      setFilters({
-                        department: "All",
-                        priority: "All",
-                        assignedTo: "All",
-                      })
-                    }
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => {
-                      /* filters applied instantly */
-                    }}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </div>
-            </Dropdown.Menu>
-          </Dropdown>
-
           <Button
             variant="outline-secondary"
             size="sm"
@@ -791,8 +649,8 @@ const PatientCases = () => {
         </div>
         <div style={{ flex: 1 }} />
         <div className="muted">
-          Last sync:{" "}
-          {lastFetchAt ? new Date(lastFetchAt).toLocaleString() : "—"}
+          {" "}
+          {lastFetchAt ? new Date(lastFetchAt).toLocaleString() : ""}
         </div>
       </div>
 

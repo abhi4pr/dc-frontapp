@@ -11,7 +11,6 @@ import {
 } from "react-bootstrap";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import api from "../../utility/api";
-import Loader from "./Loader";
 import { toast } from "react-toastify";
 import { API_URL } from "constants";
 import { useNavigate } from "react-router-dom";
@@ -24,40 +23,56 @@ import {
   FiHeart,
   FiImage,
   FiLayers,
+  FiMoreVertical,
+  FiMic,
 } from "react-icons/fi";
 
 /**
- * RemedySuggestion (upgraded)
- * - Single-file modern UI (react-bootstrap + react-icons + inline CSS)
- * - Preserves: component name, handler names (handleSubmit, handleChange), input name 'disease', payload shape.
- * - Adds: gradient header, pill search, mode chips, graceful skeletons, results card with header, illustrated empty state,
- *   quick chips, recent queries, favorites, copy/export actions, subtle micro-interactions and focus styles.
+ * RemedySuggestion – updated with textarea and reorganized button layout
+ * Changes:
+ *  - Input changed to textarea for better visibility
+ *  - Mode buttons (Text, Image, Deep) moved below textarea
+ *  - Action buttons (Search, Clear) placed next to mode buttons
+ *  - Voice button added alongside action buttons
+ *  - Upload button integrated when Image mode is selected
  */
 
+const MIN_TOUCH = 44;
+const SKELETON_MIN_MS = 300;
+const SKELETON_FADE_MS = 350;
+const STORAGE_HISTORY_KEY = "remedy_history_v2";
+const STORAGE_FAVS_KEY = "remedy_favs_v2";
+
 const RemedySuggestion = () => {
-  // preserved state names and handlers
+  // preserved state
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ disease: "" });
   const [errors, setErrors] = useState({});
   const [data, setData] = useState("");
 
-  // UI extras (allowed)
+  // UI extras
   const [mode, setMode] = useState("text"); // text | image | deep
   const [imageFile, setImageFile] = useState(null);
   const [history, setHistory] = useState([]);
   const [favs, setFavs] = useState([]);
-  const [skeleton, setSkeleton] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const navigate = useNavigate();
-  const { user, logout } = useContext(UserContext);
+  const { user } = useContext(UserContext);
   const fileRef = useRef(null);
+  const skeletonTimerRef = useRef(null);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("remedy_history_v2");
+      const raw = localStorage.getItem(STORAGE_HISTORY_KEY);
       if (raw) setHistory(JSON.parse(raw));
-      const favRaw = localStorage.getItem("remedy_favs_v2");
+      const favRaw = localStorage.getItem(STORAGE_FAVS_KEY);
       if (favRaw) setFavs(JSON.parse(favRaw));
-    } catch (e) {}
+    } catch (e) {
+      console.error("Error reading localStorage:", e);
+    }
+    return () => {
+      if (skeletonTimerRef.current) clearTimeout(skeletonTimerRef.current);
+    };
   }, []);
 
   const persistHistory = (q, resp) => {
@@ -65,8 +80,10 @@ const RemedySuggestion = () => {
     const next = [entry, ...history].slice(0, 12);
     setHistory(next);
     try {
-      localStorage.setItem("remedy_history_v2", JSON.stringify(next));
-    } catch (e) {}
+      localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Failed to persist history:", e);
+    }
   };
 
   const persistFav = (q, resp) => {
@@ -74,27 +91,25 @@ const RemedySuggestion = () => {
     const next = [entry, ...favs].slice(0, 30);
     setFavs(next);
     try {
-      localStorage.setItem("remedy_favs_v2", JSON.stringify(next));
-    } catch (e) {}
+      localStorage.setItem(STORAGE_FAVS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error("Failed to persist favs:", e);
+    }
   };
 
   // preserve handler name
   const handleSubmit = async (event) => {
-    event.preventDefault();
+    event?.preventDefault?.();
     setErrors({});
 
-    // basic validation
     if (mode === "text" && (!formData.disease || !formData.disease.trim())) {
       setErrors({ disease: "Please enter a query" });
       return;
     }
 
+    setLoading(true);
+    const started = Date.now();
     try {
-      setLoading(true);
-      setSkeleton(true);
-      // small delay so skeleton is visible briefly
-      await new Promise((r) => setTimeout(r, 300));
-
       const endpoint = `${API_URL}/ai/send_search_remedy/${user?._id}`;
 
       if (mode === "image" && imageFile) {
@@ -107,22 +122,24 @@ const RemedySuggestion = () => {
         setData(response.data.data);
         persistHistory(formData.disease || "[image]", response.data.data);
       } else {
-        // preserve original payload shape exactly
         const payload = { disease: formData.disease };
         const response = await api.post(endpoint, payload);
         setData(response.data.data);
         persistHistory(formData.disease, response.data.data);
       }
     } catch (error) {
-      if (error.response && error.response.data) {
-        toast.error(error.response.data.message || "An error occurred.");
-      } else {
-        toast.error("An error occurred.");
-      }
       console.error("RemedySuggestion error:", error);
+      if (error?.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("An error occurred while searching.");
+      }
     } finally {
-      setLoading(false);
-      setTimeout(() => setSkeleton(false), 350);
+      const elapsed = Date.now() - started;
+      const remaining = Math.max(0, SKELETON_MIN_MS - elapsed);
+      skeletonTimerRef.current = setTimeout(() => {
+        setLoading(false);
+      }, remaining + SKELETON_FADE_MS);
     }
   };
 
@@ -144,11 +161,53 @@ const RemedySuggestion = () => {
     setErrors({});
   };
 
+  const handleVoiceInput = () => {
+    if (
+      !("webkitSpeechRecognition" in window) &&
+      !("SpeechRecognition" in window)
+    ) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast.info("Listening... Speak now");
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setFormData((prev) => ({ ...prev, disease: transcript }));
+      toast.success("Voice input captured");
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      toast.error("Voice recognition failed");
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
   const copyResult = async () => {
     try {
       await navigator.clipboard.writeText(data || "");
       toast.info("Copied result to clipboard");
     } catch (e) {
+      console.error("Copy failed:", e);
       toast.error("Copy failed");
     }
   };
@@ -162,6 +221,13 @@ const RemedySuggestion = () => {
     toast.success("Saved to favorites");
   };
 
+  const topExamples = [
+    "Migraine with aura",
+    "Recurrent UTI",
+    "Anxiety + insomnia",
+    "Acute bronchitis in elderly",
+  ];
+
   const emptyStateSVG = () => (
     <svg
       width="220"
@@ -169,6 +235,8 @@ const RemedySuggestion = () => {
       viewBox="0 0 220 140"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Empty state illustration"
     >
       <rect x="0" y="0" width="220" height="140" rx="12" fill="#F8FAFC" />
       <g transform="translate(20,18)">
@@ -191,254 +259,488 @@ const RemedySuggestion = () => {
   );
 
   return (
-    <Row className="justify-content-center" style={{ padding: 18 }}>
+    <Row
+      className="justify-content-center"
+      style={{ padding: 18, background: "#F9FAFB" }}
+    >
       <style>{`
-        :root{ --bg: #f7fbfc; --muted:#6b7280; --accent1: #4facfe; --accent2: #00f2fe; --accent-cta: #6d5df6; }
-        .remedy-shell{ max-width:1100px; width:100%; }
-        .hero { padding:20px; border-radius:14px; background: linear-gradient(180deg, rgba(79,172,254,0.06), rgba(0,242,254,0.03)); box-shadow: 0 12px 36px rgba(12,16,22,0.06); border:1px solid rgba(12,16,22,0.03); }
-        .title { font-size:20px; font-weight:700; color:#072635; }
-        .subtitle { color:var(--muted); font-size:13px; }
-        .query-pill { display:flex; align-items:center; gap:10px; padding:10px 12px; background: #fff; border-radius: 999px; box-shadow: 0 8px 30px rgba(16,24,40,0.04); border:1px solid rgba(12,16,22,0.04); }
-        .pill-input { border:none; outline:none; font-size:15px; min-width:260px; }
-        .mode-chip { padding:8px 12px; border-radius:999px; cursor:pointer; border:1px solid rgba(12,16,22,0.04); transition: all .18s ease; font-size:13px; background:transparent; }
-        .mode-chip.active { background: linear-gradient(90deg, rgba(79,172,254,0.12), rgba(0,242,254,0.06)); box-shadow: inset 0 -2px 8px rgba(10,20,20,0.02); }
-        .example-chip { background: linear-gradient(180deg, #fff, #fbfdff); padding:8px 12px; border-radius:999px; border:1px solid rgba(12,16,22,0.04); cursor:pointer; font-size:13px; }
-        .results-card { margin-top:14px; background: linear-gradient(180deg,#ffffff,#fbfeff); border-radius:12px; padding:14px; box-shadow: 0 10px 30px rgba(12,16,22,0.04); border:1px solid rgba(12,16,22,0.03); }
+        /* ---- Palette (your exact values) ---- */
+        :root {
+          --primary: #6A5ACD; /* Primary Accent */
+          --primary-hover: #5A4ACF;
+          --secondary: #9370DB; /* Medium Purple */
+          --secondary-hover: #8260C9;
+          --bg-main: #F9FAFB;
+          --card-bg: #FFFFFF;
+          --border: #E5E7EB;
+          --text-primary: #111827;
+          --text-secondary: #4B5563;
+          --placeholder: #9CA3AF;
+          --success: #10B981;
+          --error: #EF4444;
+          --muted: #6B7280;
+          --accent-blue:#4FACFE;
+          --accent-cyan:#00F2FE;
+          --soft-pink:#FFD7EA;
+        }
+
+        /* container */
+        .remedy-shell { max-width: min(1400px, calc(100% - 64px)); width:100%; }
+
+        /* hero: subtle soft-pink → violet top gradient (matches supplied soft pink-violet background) */
+        .hero {
+          padding:18px;
+          border-radius:14px;
+          background: linear-gradient(180deg, rgba(217,186,255,0.06), rgba(241,231,255,0.03));
+          box-shadow: 0 14px 40px rgba(17,24,39,0.04);
+          border:1px solid var(--border);
+        }
+
+        .header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .title { font-size:20px; font-weight:700; color:var(--text-primary); }
+        .subtitle { color:var(--text-secondary); font-size:13px; margin-top:4px; }
+
+        /* Updated textarea styling */
+        .input-textarea {
+          width: 100%;
+          min-height: 120px;
+          padding: 16px;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          font-size: 15px;
+          font-family: inherit;
+          color: var(--text-primary);
+          background: var(--card-bg);
+          resize: vertical;
+          box-shadow: 0 4px 12px rgba(17,24,39,0.02);
+          transition: all 0.2s ease;
+        }
+        
+        .input-textarea:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(106,90,205,0.08), 0 4px 12px rgba(17,24,39,0.04);
+        }
+        
+        .input-textarea::placeholder {
+          color: var(--placeholder);
+        }
+
+        /* Controls section below textarea */
+        .controls-section {
+          margin-top: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        /* Mode chips row */
+        .mode-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .mode-chip {
+          padding: 10px 16px;
+          border-radius: 999px;
+          cursor: pointer;
+          border: 1px solid rgba(17,24,39,0.08);
+          transition: all .14s ease;
+          font-size: 14px;
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          min-height: 44px;
+          background: var(--card-bg);
+          font-weight: 600;
+        }
+        
+        .mode-chip.active {
+          background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          color: white;
+          border-color: rgba(106,90,205,0.14);
+          box-shadow: 0 6px 18px rgba(106,90,205,0.12);
+        }
+        
+        .mode-chip:hover:not(.active) {
+          border-color: var(--primary);
+          background: rgba(106,90,205,0.02);
+        }
+        
+        .mode-chip:focus { 
+          outline: none; 
+          box-shadow: 0 0 0 3px rgba(106,90,205,0.10); 
+        }
+
+        /* Action buttons row */
+        .action-row {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        /* primary CTA gradient (blue -> cyan -> violet) - matches your first card style */
+        .btn-gradient {
+          background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          border: none;
+          color: white;
+          min-height: 44px;
+          padding: 12px 18px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 700;
+          border-radius: 10px;
+          transition: all 0.2s ease;
+        }
+        
+        .btn-gradient:hover { 
+          filter: brightness(.96); 
+          transform: translateY(-2px); 
+          box-shadow: 0 8px 25px rgba(106,90,205,0.15);
+        }
+        
+        .btn-gradient:disabled {
+          opacity: 0.6;
+          transform: none;
+          filter: none;
+        }
+
+        /* Voice button with pulsing animation when active */
+        .btn-voice {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          min-height: 44px;
+          padding: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 600;
+          border-radius: 10px;
+          transition: all 0.2s ease;
+        }
+        
+        .btn-voice:hover {
+          border-color: var(--primary);
+          background: rgba(106,90,205,0.02);
+        }
+        
+        .btn-voice.listening {
+          background: linear-gradient(90deg, #ff6b6b, #ee5a52);
+          color: white;
+          border-color: transparent;
+          animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+
+        /* File upload info */
+        .file-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: rgba(106,90,205,0.05);
+          border: 1px solid rgba(106,90,205,0.15);
+          border-radius: 8px;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        /* results + side */
+        .layout-grid { display:grid; grid-template-columns: 1fr 340px; gap:18px; margin-top:18px; }
+
+        .results-card {
+          background: var(--card-bg);
+          border-radius:12px;
+          padding:14px;
+          border:1px solid var(--border);
+          box-shadow: 0 10px 30px rgba(17,24,39,0.03);
+        }
+
+        /* small violet header accent to visually match the design */
+        .results-card .top-accent { height:6px; border-radius:6px; margin-bottom:10px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+
         .results-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-        .results-body { margin-top:12px; min-height:140px; }
-        .ref-card { border-radius:10px; padding:10px; display:flex; gap:8px; align-items:center; background:#fff; border:1px solid rgba(12,16,22,0.04); cursor:pointer; transition: transform .12s ease; }
-        .ref-card:hover{ transform: translateY(-4px); }
-        .action-ghost { background:transparent; border:1px solid rgba(12,16,22,0.06); }
-        .small-muted{ color:var(--muted); font-size:13px; }
-        .btn-gradient { background: linear-gradient(90deg, var(--accent1), var(--accent2)); border:none; color:white; }
-        .btn-gradient:hover { filter:brightness(.96); transform: translateY(-2px); }
-        .focus-ring:focus { outline: 3px solid rgba(79,172,254,0.12); outline-offset: 2px; }
+        .results-body { margin-top:12px; min-height:120px; color:var(--text-primary); line-height:1.6; }
+
+        .skeleton { display:grid; gap:10px; }
+        .skeleton .line { height:12px; border-radius:8px; background: linear-gradient(90deg,#eef2f3,#f8fbfc,#eef2f3); background-size:200% 100%; animation: shimmer 1.4s linear infinite; }
+        @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
+
+        .ref-card {
+          background: var(--card-bg);
+          border-radius:12px;
+          padding:12px;
+          display:flex;
+          gap:12px;
+          align-items:center;
+          border:1px solid var(--border);
+          cursor:pointer;
+          transition: transform .12s ease, box-shadow .12s ease;
+          min-height:56px;
+        }
+        .ref-card:hover { transform:translateY(-4px); box-shadow: 0 10px 30px rgba(17,24,39,0.05); }
+
+        /* Quick link gradient badges (two distinct styles to match your image) */
+        .badge-gradient-a {
+          width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white;
+          background: linear-gradient(180deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          box-shadow: 0 8px 20px rgba(79,122,254,0.08);
+        }
+        .badge-gradient-b {
+          width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white;
+          background: linear-gradient(180deg, #ff9ecb, #f18ad3, var(--secondary));
+          box-shadow: 0 8px 20px rgba(241,138,211,0.06);
+        }
+
+        .example-chip { background: linear-gradient(180deg,#fff,#fbfdff); padding:8px 12px; border-radius:999px; border:1px solid var(--border); cursor:pointer; min-height:44px; display:flex; align-items:center; }
+
+        .small-muted { color:var(--text-secondary); font-size:13px; }
+
+        /* responsive */
+        @media (max-width: 992px) {
+          .layout-grid { grid-template-columns: 1fr; }
+          .meta .help-btn { display:none; }
+        }
+        @media (max-width: 768px) {
+          .mode-row, .action-row { 
+            justify-content: center; 
+          }
+          .btn-gradient { 
+            flex: 1; 
+            justify-content: center; 
+            min-width: 120px;
+          }
+        }
+        @media (max-width: 560px) {
+          .controls-section {
+            gap: 16px;
+          }
+          .mode-row {
+            justify-content: center;
+          }
+          .action-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .btn-gradient, .btn-voice {
+            width: 100%;
+            justify-content: center;
+          }
+        }
       `}</style>
 
-      <div className="remedy-shell">
-        <Card className="hero">
-          <div className="d-flex justify-content-between align-items-start">
-            <div>
-              <div className="title">Remedy Suggestion</div>
+      <div
+        className="remedy-shell"
+        role="region"
+        aria-label="Remedy suggestion panel"
+      >
+        <Card className="hero" aria-live="polite">
+          <div className="header-row" style={{ gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="title">AI Suggestion</div>
               <div className="subtitle">
-                Mini GPT for doctors — quick AI-assisted remedies, references
-                and notes.
+                Mini GPT for doctors – concise remedies & references.
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div
+              style={{ display: "flex", gap: 10, alignItems: "center" }}
+              className="meta"
+            >
               <Badge
-                bg="info"
-                pill
-                style={{ fontSize: 13, padding: "8px 12px" }}
-              >
-                <FiClock style={{ marginRight: 6 }} /> Hits:{" "}
-                {user?.hit_count ?? "—"}
-              </Badge>
-              <Button variant="outline-secondary" size="sm">
-                Help
-              </Button>
+                bg="light"
+                text="dark"
+                style={{ fontSize: 13, padding: "8px 12px", borderRadius: 10 }}
+              ></Badge>
+
+
             </div>
           </div>
 
-          <hr style={{ borderColor: "rgba(12,16,22,0.04)" }} />
+          <hr style={{ borderColor: "var(--border)", margin: "12px 0" }} />
 
-          <Form onSubmit={handleSubmit}>
-            <Form.Group as={Row} className="align-items-center">
-              <Form.Label
-                column
-                sm={2}
-                style={{ textAlign: "right", fontWeight: 600 }}
-              >
-                disease:
-              </Form.Label>
-              <Col sm={10}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                    width: "100%",
-                    flexWrap: "wrap",
-                  }}
-                >
+          <Form onSubmit={handleSubmit} noValidate>
+            <Form.Group as={Row}>
+              <Col sm={12}>
+                {/* Textarea for input */}
+                <textarea
+                  name="disease"
+                  value={formData.disease}
+                  onChange={handleChange}
+                  className="input-textarea"
+                  placeholder={
+                    mode === "image"
+                      ? "Describe the image or medical condition you want to analyze. You can also attach an image file below and press Search."
+                      : mode === "deep"
+                        ? "Enter detailed clinical query for comprehensive literature search - e.g. 'chronic migraine treatment options in elderly patients with comorbidities'"
+                        : "Enter symptoms, condition, or clinical query - e.g. 'migraine with nausea and photophobia in 35-year-old female'"
+                  }
+                  aria-label="Medical query input"
+                />
+
+                {/* Error display */}
+                {errors.disease && (
                   <div
-                    className="query-pill"
-                    style={{ flex: 1, minWidth: 300 }}
+                    className="text-danger"
+                    role="alert"
+                    style={{ marginTop: 8 }}
                   >
+                    {errors.disease}
+                  </div>
+                )}
+
+                {/* Controls section */}
+                <div className="controls-section">
+                  {/* Mode selection row */}
+                  <div className="mode-row">
                     <div
-                      style={{ display: "flex", gap: 8, alignItems: "center" }}
+                      className={`mode-chip ${mode === "text" ? "active" : ""}`}
+                      onClick={() => setMode("text")}
+                      role="tab"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && setMode("text")}
+                      aria-selected={mode === "text"}
+                      aria-label="Text search mode"
                     >
-                      <div
-                        className={`mode-chip ${mode === "text" ? "active" : ""}`}
-                        onClick={() => setMode("text")}
-                        title="Text search"
-                      >
-                        <FiSearch style={{ marginRight: 6 }} /> Text
-                      </div>
-
-                      <div
-                        className={`mode-chip ${mode === "image" ? "active" : ""}`}
-                        onClick={() => setMode("image")}
-                        title="Image search"
-                      >
-                        <FiImage style={{ marginRight: 6 }} /> Image
-                      </div>
-
-                      <div
-                        className={`mode-chip ${mode === "deep" ? "active" : ""}`}
-                        onClick={() => setMode("deep")}
-                        title="Deep literature search"
-                      >
-                        <FiLayers style={{ marginRight: 6 }} /> Deep
-                      </div>
+                      <FiSearch aria-hidden />
+                      <span>Text Search</span>
                     </div>
 
-                    <input
-                      name="disease"
-                      value={formData.disease}
-                      onChange={handleChange}
-                      className="pill-input focus-ring"
-                      placeholder={
-                        mode === "image"
-                          ? "Describe image or attach and press Submit"
-                          : "Search remedies, symptoms, medicines — e.g. 'migraine with nausea'"
-                      }
-                      aria-label="Remedy search input"
-                      style={{ marginLeft: 12 }}
-                    />
-
                     <div
-                      style={{
-                        marginLeft: "auto",
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "center",
-                      }}
+                      className={`mode-chip ${mode === "image" ? "active" : ""}`}
+                      onClick={() => setMode("image")}
+                      role="tab"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && setMode("image")}
+                      aria-selected={mode === "image"}
+                      aria-label="Image analysis mode"
                     >
-                      {mode === "image" && (
-                        <>
-                          <input
-                            ref={fileRef}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={onFilePick}
-                          />
-                          <Button
-                            variant="light"
-                            onClick={() => fileRef.current?.click()}
-                            className="focus-ring"
-                            title="Upload image"
-                          >
-                            <FiUpload />
-                          </Button>
-                          {imageFile ? (
-                            <div className="small-muted">{imageFile.name}</div>
-                          ) : null}
-                        </>
+                      <FiImage aria-hidden />
+                      <span>Image Analysis</span>
+                    </div>
+
+
+
+                    <button
+                      type="submit"
+                      className="btn-gradient"
+                      disabled={loading || user?.hit_count === 0}
+                      aria-label="Search for remedies"
+                      style={{ marginLeft: "30%" }}
+                    >
+                      {loading ? (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Spinner animation="border" size="sm" aria-hidden />
+                          Searching...
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <FiSearch aria-hidden />
+                          Search
+                        </span>
                       )}
+                    </button>
 
-                      <Button
-                        type="submit"
-                        className="btn-gradient focus-ring"
-                        disabled={loading || user?.hit_count === 0}
+                    <Button
+                      variant="outline-secondary"
+                      onClick={clearInput}
+                      style={{ minHeight: 44 }}
+                      aria-label="Clear input"
+                    >
+                      Clear
+                    </Button>
+
+                    <button
+                      type="button"
+                      className={`btn-voice ${isListening ? "listening" : ""}`}
+                      onClick={handleVoiceInput}
+                      aria-label={isListening ? "Listening..." : "Voice input"}
+                    >
+                      <FiMic aria-hidden />
+                      {isListening && <span>Listening...</span>}
+                    </button>
+                  </div>
+
+                  {/* File upload section for image mode */}
+                  {mode === "image" && (
+                    <div>
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={onFilePick}
+                      />
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
                       >
-                        {loading ? (
-                          <>
-                            <Spinner animation="border" size="sm" />{" "}
-                            <span style={{ marginLeft: 8 }}>Searching...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiSearch style={{ marginRight: 8 }} /> Search
-                          </>
+                        <Button
+                          variant="outline-secondary"
+                          onClick={() => fileRef.current?.click()}
+                          aria-label="Upload image file"
+                          style={{ minHeight: 44 }}
+                        >
+                          <FiUpload style={{ marginRight: 8 }} />
+                          Choose Image
+                        </Button>
+                        {imageFile && (
+                          <div className="file-info">
+                            <FiImage />
+                            <span>{imageFile.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setImageFile(null)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "var(--text-secondary)",
+                                cursor: "pointer",
+                                padding: "0 4px",
+                              }}
+                              aria-label="Remove file"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         )}
-                      </Button>
-
-                      <Button
-                        variant="outline-secondary"
-                        onClick={clearInput}
-                        className="focus-ring"
-                      >
-                        Clear
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div
-                      className="example-chip"
-                      onClick={() =>
-                        setFormData({ disease: "Migraine with aura" })
-                      }
-                    >
-                      Migraine with aura
-                    </div>
-                    <div
-                      className="example-chip"
-                      onClick={() => setFormData({ disease: "Recurrent UTI" })}
-                    >
-                      Recurrent UTI
-                    </div>
-                    <div
-                      className="example-chip"
-                      onClick={() =>
-                        setFormData({ disease: "Anxiety + insomnia" })
-                      }
-                    >
-                      Anxiety + insomnia
-                    </div>
-                    <div
-                      className="example-chip"
-                      onClick={() =>
-                        setFormData({ disease: "Acute bronchitis in elderly" })
-                      }
-                    >
-                      Acute bronchitis
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 10 }}>
-                  {errors.disease && (
-                    <div className="text-danger">{errors.disease}</div>
                   )}
-                </div>
 
-                <div
-                  style={{
-                    marginTop: 12,
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <Button
-                    variant="primary"
-                    onClick={handleSubmit}
-                    disabled={loading || user?.hit_count === 0}
-                  >
-                    Submit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => navigate("/app/dashboard")}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
+                  {/* Action buttons row */}
+                  <div className="action-row"></div>
 
+                  {/* Status messages */}
                   {user?.hit_count === 0 && (
-                    <div className="text-danger">
-                      You have reached your limit please recharge your limit.
+                    <div className="text-danger" role="status">
+                      You have reached your limit – please recharge.
                     </div>
                   )}
                 </div>
@@ -446,20 +748,21 @@ const RemedySuggestion = () => {
             </Form.Group>
           </Form>
 
-          {/* Main content: results + side panel */}
           <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 320px",
-              gap: 16,
-              marginTop: 18,
-            }}
+            className="layout-grid"
+            role="region"
+            aria-label="Results and reference"
           >
             <div>
-              <div className="results-card">
+              <div className="results-card" aria-live="polite">
+                <div className="top-accent" aria-hidden />
                 <div className="results-header">
                   <div>
-                    <div style={{ fontWeight: 700 }}>Results</div>
+                    <div
+                      style={{ fontWeight: 700, color: "var(--text-primary)" }}
+                    >
+                      Results
+                    </div>
                     <div className="small-muted">
                       AI-suggested remedies, short notes and references.
                     </div>
@@ -468,26 +771,25 @@ const RemedySuggestion = () => {
                   <div
                     style={{ display: "flex", gap: 8, alignItems: "center" }}
                   >
-                    <Button variant="light" title="Copy" onClick={copyResult}>
-                      <FiCopy />
-                    </Button>
                     <Button
                       variant="light"
-                      title="Save to favorites"
-                      onClick={saveFavorite}
+                      onClick={copyResult}
+                      aria-label="Copy result"
+                      style={{ minHeight: 36 }}
                     >
-                      <FiHeart />
+                      <FiCopy />
                     </Button>
+
                     <Dropdown>
-                      <Dropdown.Toggle variant="light" id="dd-actions" />
-                      <Dropdown.Menu>
-                        <Dropdown.Item
-                          onClick={() =>
-                            navigator.clipboard?.writeText(data || "")
-                          }
-                        >
-                          Copy
-                        </Dropdown.Item>
+                      <Dropdown.Toggle
+                        variant="light"
+                        id="dd-actions"
+                        style={{ minHeight: 36 }}
+                      >
+                        <FiMoreVertical />
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu align="end">
+                        <Dropdown.Item onClick={copyResult}>Copy</Dropdown.Item>
                         <Dropdown.Item
                           onClick={() => alert("Export PDF (stub)")}
                         >
@@ -499,50 +801,23 @@ const RemedySuggestion = () => {
                 </div>
 
                 <div className="results-body">
-                  {skeleton ? (
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <div
-                        style={{
-                          height: 14,
-                          width: "48%",
-                          background:
-                            "linear-gradient(90deg,#eef2f3,#f8fbfc,#eef2f3)",
-                          borderRadius: 8,
-                        }}
-                      />
-                      <div
-                        style={{
-                          height: 12,
-                          width: "90%",
-                          background: "#f6fbfc",
-                          borderRadius: 8,
-                        }}
-                      />
-                      <div
-                        style={{
-                          height: 12,
-                          width: "82%",
-                          background: "#f6fbfc",
-                          borderRadius: 8,
-                        }}
-                      />
-                      <div
-                        style={{
-                          height: 12,
-                          width: "70%",
-                          background: "#f6fbfc",
-                          borderRadius: 8,
-                        }}
-                      />
+                  {loading ? (
+                    <div className="skeleton">
+                      <div className="line" style={{ width: "52%" }} />
+                      <div className="line" style={{ width: "88%" }} />
+                      <div className="line" style={{ width: "74%" }} />
+                      <div className="line" style={{ width: "60%" }} />
                     </div>
                   ) : data ? (
-                    <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                      {" "}
-                      {data}{" "}
-                    </div>
+                    <div style={{ whiteSpace: "pre-wrap" }}>{data}</div>
                   ) : (
                     <div
-                      style={{ display: "flex", gap: 12, alignItems: "center" }}
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
                     >
                       <div>{emptyStateSVG()}</div>
                       <div>
@@ -550,89 +825,59 @@ const RemedySuggestion = () => {
                           No results yet
                         </div>
                         <div className="small-muted">
-                          Try a short clinical query, or upload an image and
-                          press Submit.
+                          Try a short clinical query or upload an image and
+                          press Search.
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <hr style={{ borderColor: "rgba(12,16,22,0.04)" }} />
+                <hr style={{ borderColor: "var(--border)" }} />
 
                 <div
                   style={{
                     display: "flex",
-                    gap: 10,
+                    gap: 8,
                     alignItems: "center",
                     flexWrap: "wrap",
                   }}
                 >
-                  <div className="small-muted">Recent queries</div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      flexWrap: "wrap",
-                      marginLeft: 8,
-                    }}
-                  >
-                    {history.length === 0 ? (
-                      <div className="small-muted">No recent queries</div>
-                    ) : (
-                      history.map((h, i) => (
-                        <div
-                          key={i}
-                          className="example-chip"
-                          onClick={() => {
-                            setFormData({ disease: h.q });
-                            setData(h.resp);
-                          }}
-                        >
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>
-                            {h.q}
-                          </div>
-                          <div className="small-muted" style={{ fontSize: 11 }}>
-                            {new Date(h.at).toLocaleString()}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+
                 </div>
               </div>
             </div>
 
-            <div>
-              <div style={{ fontWeight: 700, marginBottom: 10 }}>
+            <aside>
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginBottom: 10,
+                  color: "var(--text-primary)",
+                }}
+              >
                 Reference & Actions
               </div>
               <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div>
                   <div className="small-muted">Quick links</div>
                   <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                      marginTop: 8,
+                    }}
                   >
                     <div
                       className="ref-card"
                       onClick={() =>
                         window.open("https://pubmed.ncbi.nlm.nih.gov", "_blank")
                       }
+                      role="link"
+                      tabIndex={0}
                     >
-                      <div
-                        style={{
-                          background: "linear-gradient(90deg,#4facfe,#00f2fe)",
-                          borderRadius: 8,
-                          width: 36,
-                          height: 36,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        P
-                      </div>
+                      <div className="badge-gradient-a">P</div>
                       <div>
                         <div style={{ fontWeight: 700 }}>PubMed</div>
                         <div className="small-muted">Research articles</div>
@@ -644,21 +889,10 @@ const RemedySuggestion = () => {
                       onClick={() =>
                         window.open("https://www.who.int", "_blank")
                       }
+                      role="link"
+                      tabIndex={0}
                     >
-                      <div
-                        style={{
-                          background: "linear-gradient(90deg,#6d5df6,#9b8bff)",
-                          borderRadius: 8,
-                          width: 36,
-                          height: 36,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        W
-                      </div>
+                      <div className="badge-gradient-b">W</div>
                       <div>
                         <div style={{ fontWeight: 700 }}>WHO</div>
                         <div className="small-muted">Guidelines</div>
@@ -670,21 +904,10 @@ const RemedySuggestion = () => {
                       onClick={() =>
                         window.open("https://www.ncbi.nlm.nih.gov", "_blank")
                       }
+                      role="link"
+                      tabIndex={0}
                     >
-                      <div
-                        style={{
-                          background: "linear-gradient(90deg,#34d399,#86efac)",
-                          borderRadius: 8,
-                          width: 36,
-                          height: 36,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        N
-                      </div>
+                      <div className="badge-gradient-a">N</div>
                       <div>
                         <div style={{ fontWeight: 700 }}>NCBI</div>
                         <div className="small-muted">Datasets & more</div>
@@ -694,66 +917,14 @@ const RemedySuggestion = () => {
 
                   <div
                     style={{
-                      borderTop: "1px solid rgba(12,16,22,0.04)",
+                      borderTop: "1px solid var(--border)",
                       paddingTop: 8,
-                    }}
-                  >
-                    <div className="small-muted">Share / Export</div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                      <Button variant="light" onClick={copyResult}>
-                        Copy
-                      </Button>
-                      <Button
-                        variant="light"
-                        onClick={() => alert("Export as PDF (stub)")}
-                      >
-                        Export
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="small-muted">Favorites</div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
                       marginTop: 8,
                     }}
-                  >
-                    {favs.length === 0 ? (
-                      <div className="small-muted">No favorites yet</div>
-                    ) : (
-                      favs.map((f, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            background: "#fff",
-                            padding: 8,
-                            borderRadius: 10,
-                            border: "1px solid rgba(12,16,22,0.04)",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => {
-                            setFormData({ disease: f.q });
-                            setData(f.resp);
-                          }}
-                        >
-                          <div style={{ fontSize: 13, fontWeight: 700 }}>
-                            {f.q}
-                          </div>
-                          <div className="small-muted" style={{ fontSize: 12 }}>
-                            {new Date(f.at).toLocaleString()}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  ></div>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
         </Card>
       </div>

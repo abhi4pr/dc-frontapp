@@ -1,6 +1,11 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
 import {
-  Card,
   Row,
   Button,
   Form,
@@ -10,224 +15,468 @@ import {
   ProgressBar,
   Modal,
   FormCheck,
+  InputGroup,
 } from "react-bootstrap";
-import "react-confirm-alert/src/react-confirm-alert.css";
-import api from "../../utility/api";
-import Loader from "./Loader";
-import { toast } from "react-toastify";
-import { API_URL } from "constants";
 import { useNavigate } from "react-router-dom";
-import { UserContext } from "../../contexts/UserContext";
+import { toast } from "react-toastify";
 import {
   BsSearch,
   BsClockHistory,
   BsPrinter,
   BsInfoCircle,
+  BsXLg,
+  BsFillLightningFill,
 } from "react-icons/bs";
+import api from "../../utility/api";
+import { API_URL } from "constants";
+import { UserContext } from "../../contexts/UserContext";
 
-/**
- * Single-file Repertory component with stronger visual overrides.
- * - Keeps component name & handler names unchanged.
- * - No external CSS files required.
- * - Increased specificity & stronger visuals to beat Bootstrap global styles.
- * - Adds: author/source filter (client-side), provenance display, score explanation modal,
- *   and Materia Medica quick-view modal. Author filter persisted to localStorage.
- */
+/* ----------------------------- IndexedDB helpers ----------------------------- */
+const DB_NAME = "homeopathika_repertory_db_v3";
+const STORE = "rep_cache_v3";
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
+const CACHE_MAX = 800;
 
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = window.indexedDB.open(DB_NAME, 1);
+    req.onerror = () => reject(req.error);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        const s = db.createObjectStore(STORE, { keyPath: "key" });
+        s.createIndex("ts_idx", "ts");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+async function dbGet(key) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE, "readonly");
+      const store = tx.objectStore(STORE);
+      const rq = store.get(key);
+      rq.onsuccess = () => {
+        const val = rq.result;
+        if (!val) return resolve(null);
+        const now = Date.now();
+        if (val.ttl && now - val.ts > val.ttl) return resolve(null);
+        resolve(val.value);
+      };
+      rq.onerror = () => resolve(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+async function dbSet(key, value, ttl = CACHE_TTL) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    store.put({ key, value, ts: Date.now(), ttl });
+    tx.oncomplete = () => trimCache().catch(() => {});
+  } catch (e) {}
+}
+async function trimCache() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const rq = store.getAll();
+    rq.onsuccess = () => {
+      const list = rq.result || [];
+      if (list.length <= CACHE_MAX) return;
+      list.sort((a, b) => a.ts - b.ts);
+      const remove = list.slice(0, list.length - CACHE_MAX);
+      remove.forEach((r) => store.delete(r.key));
+    };
+  } catch (e) {}
+}
+async function clearExpired() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const rq = store.openCursor();
+    const now = Date.now();
+    rq.onsuccess = (ev) => {
+      const c = ev.target.result;
+      if (!c) return;
+      const v = c.value;
+      if (v && v.ttl && now - v.ts > v.ttl) c.delete();
+      c.continue();
+    };
+  } catch (e) {}
+}
+
+/* ----------------------------- small utilities ----------------------------- */
+const esc = (s) =>
+  s === null || s === undefined
+    ? ""
+    : String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function highlight(text = "", tokens = []) {
+  if (!text) return esc(text);
+  let out = esc(text);
+  const uniq = Array.from(
+    new Set(tokens.filter(Boolean).map((t) => t.trim().toLowerCase()))
+  ).sort((a, b) => b.length - a.length);
+  uniq.forEach((t) => {
+    if (!t) return;
+    try {
+      const re = new RegExp(`(${escapeRegExp(t)})`, "gi");
+      out = out.replace(re, "<mark>$1</mark>");
+    } catch (e) {}
+  });
+  return out;
+}
+
+/* --------------------------- explainable scoring --------------------------- */
+function computeScoreComponents(
+  item = {},
+  query = "",
+  severity = 3,
+  authorWeights = {}
+) {
+  const matched = Array.isArray(item.matched_rubrics)
+    ? item.matched_rubrics
+    : [];
+  const sumGrades = matched.reduce((s, r) => s + (r.grade || r.weight || 1), 0);
+  const countGrades = Math.max(1, matched.length);
+  const rubricWeight = Math.round(
+    Math.min(100, (sumGrades / (countGrades * 3)) * 100)
+  );
+
+  const sources = Array.isArray(item.sources_struct)
+    ? item.sources_struct
+    : Array.isArray(item.sources)
+      ? item.sources
+      : [];
+  let baseTrust = Math.min(
+    90,
+    (Array.isArray(sources) ? sources.length : 0) * 12
+  );
+  if (Array.isArray(sources) && Object.keys(authorWeights || {}).length) {
+    try {
+      sources.forEach((s) => {
+        const auth = (s.author || s.book || "").toLowerCase();
+        Object.keys(authorWeights).forEach((a) => {
+          if (!authorWeights[a]) return;
+          if (auth.includes(a.toLowerCase()))
+            baseTrust = Math.min(
+              100,
+              baseTrust + Math.round(authorWeights[a] * 0.2)
+            );
+        });
+      });
+    } catch (e) {}
+  }
+  const sourceTrust = Math.round(baseTrust);
+
+  const tokens = (query || "")
+    .split(/\s+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  let matches = 0;
+  if (tokens.length) {
+    const pool = [];
+    if (Array.isArray(item.matched_rubrics))
+      pool.push(
+        ...item.matched_rubrics.map((r) =>
+          typeof r === "string" ? r : r.rubric || r.text || ""
+        )
+      );
+    if (item.summary)
+      pool.push(
+        Array.isArray(item.summary) ? item.summary.join(" ") : item.summary
+      );
+    if (Array.isArray(item.provings))
+      pool.push(...item.provings.map((p) => p.text || p.excerpt || ""));
+    const combined = pool.join(" ").toLowerCase();
+    tokens.forEach((t) => {
+      if (combined.includes(t)) matches++;
+    });
+  }
+  const degreeMatch = Math.round(
+    Math.min(100, tokens.length ? (matches / tokens.length) * 100 : 30)
+  );
+  const severityMatch = (() => {
+    const hint = item.severity_hint || 3;
+    return Math.round(100 - Math.min(100, Math.abs(hint - severity) * 25));
+  })();
+
+  const final = Math.round(
+    0.34 * degreeMatch +
+      0.28 * sourceTrust +
+      0.22 * rubricWeight +
+      0.16 * severityMatch
+  );
+  return {
+    score: Math.min(99, Math.max(0, final)),
+    components: {
+      rubricWeight: Math.round(rubricWeight),
+      sourceTrust: Math.round(sourceTrust),
+      degreeMatch: Math.round(degreeMatch),
+      severityMatch: Math.round(severityMatch),
+    },
+  };
+}
+
+/* ------------------------- matched snippet generator ------------------------ */
+function matchedSnips(item, query) {
+  const tokens = (query || "")
+    .split(/\s+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  const out = [];
+  if (!item) return out;
+  if (item.summary)
+    out.push({
+      source: "Summary",
+      html: highlight(
+        Array.isArray(item.summary) ? item.summary.join(" ") : item.summary,
+        tokens
+      ),
+    });
+  if (Array.isArray(item.matched_rubrics))
+    item.matched_rubrics.slice(0, 6).forEach((r, i) => {
+      const txt = typeof r === "string" ? r : r.rubric || r.text || "";
+      out.push({ source: `Rubric ${i + 1}`, html: highlight(txt, tokens) });
+    });
+  if (Array.isArray(item.provings))
+    item.provings.slice(0, 6).forEach((p, i) => {
+      const txt = p.text || p.excerpt || "";
+      out.push({
+        source: p.source || `Prov ${i + 1}`,
+        html: highlight(txt, tokens),
+      });
+    });
+  return out;
+}
+
+/* ----------------------------- Venn/diff helpers ---------------------------- */
+function keynoteSet(item) {
+  const keys = Array.isArray(item.keynotes)
+    ? item.keynotes
+    : item.summary
+      ? Array.isArray(item.summary)
+        ? item.summary
+        : String(item.summary)
+            .split(".")
+            .map((s) => s.trim())
+            .filter(Boolean)
+      : [];
+  return new Set(
+    keys.map((k) => String(k).trim().toLowerCase()).filter(Boolean)
+  );
+}
+function computeVenn(list) {
+  const sets = list.map((it) => keynoteSet(it));
+  if (sets.length === 2) {
+    const [a, b] = sets;
+    const shared = [...a].filter((x) => b.has(x));
+    return {
+      shared,
+      unique: [
+        [...a].filter((x) => !b.has(x)),
+        [...b].filter((x) => !a.has(x)),
+      ],
+    };
+  } else if (sets.length === 3) {
+    const [a, b, c] = sets;
+    const shared = [...a].filter((x) => b.has(x) && c.has(x));
+    return {
+      shared,
+      unique: [
+        [...a].filter((x) => !b.has(x) && !c.has(x)),
+        [...b].filter((x) => !a.has(x) && !c.has(x)),
+        [...c].filter((x) => !a.has(x) && !b.has(x)),
+      ],
+    };
+  }
+  return { shared: [], unique: sets.map((s) => [...s]) };
+}
+
+/* --------------------------------- Component --------------------------------- */
 const Repertory = () => {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
-  const [data, setData] = useState("");
-  const [filterData, setFilterData] = useState([]);
+  // preserved names
+  const [formData, setFormData] = useState({ disease: "" });
+  const [data, setData] = useState(""); // array | object | string
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    disease: "",
-  });
   const [errors, setErrors] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [severity, setSeverity] = useState(3);
-  const [cacheBadge, setCacheBadge] = useState(false);
-  const [expandedRemedy, setExpandedRemedy] = useState(null);
-  const [comparison, setComparison] = useState([]);
   const [inlineError, setInlineError] = useState(null);
+  const [cacheBadge, setCacheBadge] = useState(false);
 
-  // NEW: author / source filter
-  const AUTHORS_STORAGE = "repertory_authors_v1";
-  const defaultAuthors = [
-    "Kent",
-    "Boenninghausen",
+  // advanced features
+  const [searchMode, setSearchMode] = useState("semantic"); // exact | fuzzy | boolean | semantic
+  const [availableRepertories] = useState([
     "Synthesis",
     "Complete",
+    "Kent",
     "Boericke",
-    "Hahnemann",
-  ];
-  const [authorsList] = useState(defaultAuthors);
-  const [authorFilter, setAuthorFilter] = useState(() => {
-    try {
-      const raw = localStorage.getItem(AUTHORS_STORAGE);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      return [];
-    }
-  });
-  const [authorDropdownOpen, setAuthorDropdownOpen] = useState(false);
-  const authorDropdownRef = useRef(null);
+    "Modern",
+  ]);
+  const [repertoriesSelected, setRepertoriesSelected] = useState([
+    "Synthesis",
+    "Complete",
+  ]);
+  const [authorsList] = useState([
+    "Samuel Hahnemann",
+    "Constantine Hering",
+    "James Tyler Kent",
+    "C.M.F. Boenninghausen",
+    "Adolph Lippe",
+    "H.N. Guernsey",
+    "E.A. Farrington",
+    "Richard Hughes",
+    "J.H. Clarke",
+    "Margaret Tyler",
+    "William Boericke",
+    "G.B. Nash",
+    "Frederik Schroyens",
+    "George Vithoulkas",
+    "Rajan Sankaran",
+    "Luc De Schepper",
+    "Robin Murphy",
+    "Massimo Mangialavori",
+  ]);
+  const [authorFilter, setAuthorFilter] = useState([]);
+  const [authorWeights, setAuthorWeights] = useState(() => ({})); // percent weights
 
-  // MM modal and score explanation modal
-  const [mmModalOpen, setMmModalOpen] = useState(false);
+  // compare UI
+  const [comparison, setComparison] = useState([]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  // modals
+  const [mmOpen, setMmOpen] = useState(false);
   const [mmContent, setMmContent] = useState(null);
-  const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [scoreOpen, setScoreOpen] = useState(false);
 
+  // suggestions & keyboard
   const suggestionsRef = useRef(null);
-  const resultsRef = useRef(null);
   const debounceRef = useRef(null);
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
 
-  // Stronger injected CSS: higher specificity and visual polish.
+  // request ctrl
+  const latestReq = useRef(0);
+  const controllerRef = useRef(null);
+
+  // virtualization
+  const resultsRef = useRef(null);
+  const [windowStart, setWindowStart] = useState(0);
+  const WINDOW = 16;
+  const ITEM_H = 128;
+
+  // inject the glassmorphic theme + fancy slider CSS once
   useEffect(() => {
-    const styleId = "repertory-inline-styles-v3";
+    const styleId = "rep-upgrade-v5-styles";
     if (document.getElementById(styleId)) return;
     const css = `
-      /* ---------- Scoped, high-specificity styles for Repertory ---------- */
-      body .repertory-root { padding: 34px 28px 80px; display:flex; justify-content:center; }
-      body .repertory-root .repertory-card {
-        width:100%;
-        max-width:1100px;
-        margin: 0 auto;
-        border-radius: 20px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,252,253,0.96));
-        border: 1px solid rgba(11,102,120,0.06);
-        box-shadow: 0 30px 50px rgba(6,34,54,0.10);
-        padding: 28px 26px;
-        position: relative;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+      /* glassmorphic theme — palettes from your references */
+      .rep-root { padding:34px 26px 90px; display:flex; justify-content:center; }
+      .rep-card { width:100%; max-width:1200px; border-radius:18px; padding:28px; position:relative;
+        background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(250,250,255,0.92));
+        box-shadow: 0 30px 60px rgba(18,28,60,0.08); backdrop-filter: blur(8px) saturate(120%);
+        border: 1px solid rgba(255,255,255,0.6);
       }
-
-      /* top-right hits badge, visible despite outer layout */
-      body .repertory-root .repertory-card .top-actions { position:absolute; right:22px; top:20px; display:flex; gap:10px; align-items:center; }
-
-      body .repertory-root .repertory-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:18px; }
-      body .repertory-root .repertory-title { font-size:22px; font-weight:700; margin:0; color:#073642; }
-      body .repertory-root .repertory-sub { font-size:13px; color:#5d6b72; margin-top:4px; }
-
-      body .repertory-root .search-row { display:flex; align-items:center; gap:14px; }
-      body .repertory-root .search-control { position:relative; flex:1; min-width:320px; }
-      /* use input class name to avoid bootstrap form-control conflicts */
-      body .repertory-root input.search-input {
-        width:100%;
-        height:46px;
-        border-radius:999px;
-        padding:10px 46px 10px 46px;
-        border: 1px solid rgba(6,182,212,0.12) !important;
-        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,253,254,0.98));
-        box-shadow: 0 8px 20px rgba(6,182,212,0.04) inset;
-        outline: none;
-        transition: box-shadow .14s ease, transform .08s ease, border-color .12s ease;
-        font-size:14px;
-        color:#073642;
+      .rep-hero { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
+      .rep-badge { width:56px; height:56px; border-radius:14px; display:grid; place-items:center; color:white; font-weight:900;
+        background: linear-gradient(135deg,#7ea3ff,#ff7fc4); box-shadow: 0 10px 30px rgba(126,163,255,0.12);
       }
-      body .repertory-root input.search-input:focus {
-        box-shadow: 0 12px 30px rgba(6,182,212,0.12);
-        border-color: rgba(6,182,212,0.32) !important;
-        transform: translateY(-1px);
+      .rep-title { font-size:20px; font-weight:800; color:#072034; margin:0; }
+      .rep-sub { color:#51646a; margin-top:4px; font-size:13px; }
+      .rep-top-actions { margin-left:auto; display:flex; gap:10px; align-items:center; }
+
+      .search-row { display:flex; gap:12px; align-items:center; width:100%; }
+      .search-box { position:relative; flex:1; }
+      input.search-input { width:100%; height:54px; padding:12px 48px 12px 48px; border-radius:14px; border:1px solid rgba(10,60,80,0.06);
+        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,255,0.98)); box-shadow:0 8px 30px rgba(20,40,80,0.03) inset; font-size:15px; color:#062034;
       }
+      .search-left-ic { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#375e84; font-size:18px; }
+      .search-right { position:absolute; right:14px; top:50%; transform:translateY(-50%); display:flex; gap:8px; align-items:center; }
+      .mode-select { height:36px; border-radius:10px; border:1px solid rgba(10,60,80,0.04); background:transparent; padding:4px 8px; }
+      .search-btn { padding:10px 18px; border-radius:12px; border:none; color:white; background: linear-gradient(90deg,#7ea3ff,#ff90c1); font-weight:800; box-shadow: 0 12px 30px rgba(126,163,255,0.12); }
 
-      body .repertory-root .search-icon-left { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#06a6c0; font-size:18px; }
-      body .repertory-root .search-icon-right { position:absolute; right:14px; top:50%; transform:translateY(-50%); display:flex; gap:8px; align-items:center; }
+      .chips-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+      .chip { padding:8px 14px; border-radius:999px; background: rgba(126,163,255,0.06); border:1px solid rgba(126,163,255,0.08); cursor:pointer; font-weight:700; color:#073642; }
 
-      body .repertory-root button.pill-btn { border-radius: 999px; padding: 8px 18px; min-width:92px; }
-      body .repertory-root button.pill-btn.btn-primary {
-        background: linear-gradient(90deg,#36d1dc 0%, #5b86e5 100%) !important;
-        border: none !important;
-        box-shadow: 0 10px 30px rgba(90,120,200,0.12);
-      }
-      body .repertory-root button.pill-btn.btn-danger {
-        background: linear-gradient(90deg,#ff9a9e 0%, #fecfef 100%) !important;
-        border: none !important;
-        color:#fff !important;
-        box-shadow: 0 8px 20px rgba(230,80,100,0.10);
-      }
+      .author-weights { display:flex; gap:12px; margin-top:14px; overflow-x:auto; padding-bottom:6px; }
+      .author-card { min-width:170px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,250,255,0.96)); border-radius:12px; padding:10px; border:1px solid rgba(10,60,80,0.03); box-shadow:0 8px 24px rgba(10,30,50,0.03); }
+      .author-title { font-weight:700; font-size:13px; color:#08303a; margin-bottom:8px; }
 
-      body .repertory-root .meta-row { display:flex; gap:12px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-      body .repertory-root .chip { background: rgba(6,182,212,0.07); border-radius:999px; padding:8px 12px; font-size:13px; cursor:pointer; color:#034b55; }
+      /* Fancy glass slider — colored track + animated thumb */
+      .glass-slider { -webkit-appearance:none; appearance:none; height:14px; border-radius:999px; width:100%; background: linear-gradient(90deg,#dfeeff,#ffdff0); position:relative; box-shadow: inset 0 6px 16px rgba(60,90,140,0.04); }
+      .glass-slider::-webkit-slider-runnable-track { height:14px; border-radius:999px; }
+      .glass-slider::-moz-range-track { height:14px; border-radius:999px; }
+      .glass-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:34px; height:34px; margin-top:-10px; border-radius:50%; background: linear-gradient(135deg,#ffffff,#f6f8ff); box-shadow: 0 6px 20px rgba(126,163,255,0.18); border: 6px solid rgba(255,255,255,0.55); transition: transform .18s cubic-bezier(.2,.9,.2,1); }
+      .glass-slider:hover::-webkit-slider-thumb { transform: scale(1.04); }
+      .glass-slider::-moz-range-thumb { width:34px; height:34px; border-radius:50%; background: linear-gradient(135deg,#ffffff,#f6f8ff); box-shadow: 0 6px 20px rgba(126,163,255,0.18); border:6px solid rgba(255,255,255,0.55); }
 
-      body .repertory-root .severity-slider { width:180px; accent-color:#0d6efd; }
+      .glass-track-fill { position:absolute; left:0; top:0; bottom:0; border-radius:999px; z-index:0; pointer-events:none; background: linear-gradient(90deg,#7ea3ff 0%, #ff90c1 100%); opacity:0.18; }
 
-      /* suggestions dropdown strong visual */
-      body .repertory-root .suggestions {
-        position:absolute; left:0; right:0; top:calc(100% + 10px);
-        background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 18px 38px rgba(10,20,40,0.08);
-        z-index: 2200;
-        max-height:240px;
-        overflow:auto;
-        border:1px solid rgba(0,0,0,0.04);
-      }
-      body .repertory-root .suggestion-item { padding:12px 14px; cursor:pointer; font-size:14px; color:#034b55; }
-      body .repertory-root .suggestion-item:hover, body .repertory-root .suggestion-item.active { background: linear-gradient(90deg, rgba(82,229,179,0.06), rgba(6,182,212,0.04)); }
+      .results { margin-top:18px; max-height:560px; overflow:auto; padding-right:8px; }
+      .remedy { display:flex; justify-content:space-between; gap:12px; padding:14px; border-radius:12px; background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(255,255,255,0.96)); border:1px solid rgba(10,60,80,0.03); box-shadow:0 8px 26px rgba(10,30,50,0.03); }
+      .rem-left { display:flex; gap:12px; align-items:flex-start; flex:1; }
+      .badge-round { width:84px; height:84px; border-radius:12px; display:grid; place-items:center; font-weight:900; background: linear-gradient(135deg,#7ea3ff33,#ff90c133); color:#072034; font-size:18px; }
+      .rem-title { font-weight:800; font-size:16px; color:#042b33; }
+      .rem-meta { color:#4b5b63; font-size:13px; margin-bottom:8px; }
+      mark { background: #fff59a; padding:0 3px; border-radius:3px; }
 
-      body .repertory-root .results-area { margin-top:18px; }
-      body .repertory-root .remedy-card {
-        background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(250,255,255,0.98));
-        border-radius:12px; padding:14px; margin-bottom:14px; border:1px solid rgba(6,182,212,0.035);
-        display:flex; gap:16px; align-items:flex-start; justify-content:space-between;
-        box-shadow: 0 8px 20px rgba(6,90,100,0.03);
-      }
-      body .repertory-root .remedy-name { font-weight:700; font-size:16px; color:#022b34; margin-bottom:6px; }
-      body .repertory-root .remedy-meta { font-size:13px; color:#3b4a4f; margin-bottom:8px; }
-      body .repertory-root .remedy-chip { background: rgba(3,75,85,0.04); padding:6px 10px; border-radius:8px; font-size:12px; color:#034b55; }
-
-      body .repertory-root .expanded-details { margin-top:10px; font-size:13px; color:#343a40; background: rgba(6,182,212,0.02); padding:10px; border-radius:8px; }
-
-      /* author dropdown */
-      body .repertory-root .author-btn { border-radius:14px; padding:6px 10px; border:1px solid rgba(0,0,0,0.04); background: #fff; cursor:pointer; }
-      body .repertory-root .author-dropdown { position: absolute; right: 0; top: 40px; z-index:2400; background:#fff; border-radius:10px; box-shadow: 0 12px 36px rgba(10,20,40,0.08); padding:8px; width:220px; border:1px solid rgba(0,0,0,0.04); }
-
-      body .repertory-root .inline-error { background: rgba(255,230,230,0.95); color:#842029; padding:12px; border-radius:10px; border:1px solid rgba(200,60,60,0.12); margin-bottom:12px; }
+      .controls-col { display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:140px; }
 
       @media (max-width:900px) {
-        body .repertory-root .repertory-card { padding:16px; margin:12px; }
-        body .repertory-root .search-row { flex-direction:column; align-items:stretch; gap:10px; }
-        body .repertory-root .top-actions { position: static; margin-top:8px; justify-content:flex-end; }
+        .search-row { flex-direction:column; align-items:stretch; }
+        .remedy { flex-direction:column; align-items:stretch; }
+        .author-weights { flex-direction:column; }
+        .controls-col { align-items:flex-start; min-width:auto; }
       }
     `;
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = css;
-    document.head.appendChild(style);
+    const s = document.createElement("style");
+    s.id = styleId;
+    s.innerHTML = css;
+    document.head.appendChild(s);
   }, []);
 
-  // local cache helpers
-  const CACHE_KEY = "repertory_cache_v1";
-  const getCache = () => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch (e) {
-      return {};
-    }
-  };
-  const setCache = (key, value) => {
-    try {
-      const cache = getCache();
-      cache[key] = { value, ts: Date.now() };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-    } catch (e) {}
-  };
-
-  // persist authorFilter to localStorage when changed
+  // clear expired cache
   useEffect(() => {
-    try {
-      localStorage.setItem(AUTHORS_STORAGE, JSON.stringify(authorFilter));
-    } catch (e) {}
-  }, [authorFilter]);
+    clearExpired().catch(() => {});
+  }, []);
 
-  // suggestions debounce
+  /* ----------------------------- suggestion fetch ----------------------------- */
+  const fetchSugs = async (q) => {
+    try {
+      const res = await api.get(
+        `${API_URL}/search/suggest?q=${encodeURIComponent(q)}`
+      );
+      if (res && res.data && Array.isArray(res.data.suggestions))
+        return res.data.suggestions;
+    } catch (e) {}
+    const corp = [
+      "anxiety",
+      "headache",
+      "fever",
+      "cough",
+      "restlessness",
+      "insomnia",
+      "burning pain",
+      "stitching pain",
+      "worse at night",
+    ];
+    return corp.filter((x) => x.includes(q.toLowerCase())).slice(0, 8);
+  };
+
   useEffect(() => {
     if (!formData.disease || formData.disease.trim().length < 2) {
       setSuggestions([]);
@@ -236,43 +485,21 @@ const Repertory = () => {
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      const q = formData.disease.trim().toLowerCase();
-      const corpus = [
-        "anxiety",
-        "headache",
-        "fever",
-        "cough",
-        "restlessness",
-        "insomnia",
-        "sharp pain",
-        "burning sensation",
-        "stitching pain",
-        "worse at night",
-      ];
-      const matches = corpus.filter((s) => s.includes(q)).slice(0, 8);
-      setSuggestions(matches);
-      setShowSuggestions(matches.length > 0);
-    }, 260);
+      const s = await fetchSugs(formData.disease.trim());
+      setSuggestions(s);
+      setShowSuggestions(s.length > 0);
+      setActiveSuggestionIdx(-1);
+    }, 220);
     return () => clearTimeout(debounceRef.current);
   }, [formData.disease]);
 
   useEffect(() => {
-    const onDocClick = (e) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(e.target)
-      ) {
+    const onDoc = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target))
         setShowSuggestions(false);
-      }
-      if (
-        authorDropdownRef.current &&
-        !authorDropdownRef.current.contains(e.target)
-      ) {
-        setAuthorDropdownOpen(false);
-      }
     };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
   }, []);
 
   useEffect(() => {
@@ -296,53 +523,121 @@ const Repertory = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [showSuggestions, suggestions, activeSuggestionIdx]);
 
-  // preserve handler name exactly
+  /* ------------------------------ preserved handlers ------------------------------ */
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: null }));
     setInlineError(null);
-    if (name === "disease" && value && value.trim().length >= 2) {
+    if (name === "disease" && value && value.trim().length >= 2)
       setShowSuggestions(true);
-    } else {
-      setShowSuggestions(false);
-    }
+    else setShowSuggestions(false);
   };
 
-  // preserve handleSubmit signature & exact POST payload
+  /* ------------------------------- handleSubmit -------------------------------- */
   const handleSubmit = async (event) => {
-    event.preventDefault();
+    if (event && event.preventDefault) event.preventDefault();
     setInlineError(null);
     if (!formData.disease || formData.disease.trim() === "") {
       setErrors({ disease: "Please enter a symptom or rubric." });
       return;
     }
-    const key = formData.disease.trim().toLowerCase();
-    const cache = getCache();
-    if (cache[key]) {
-      setCacheBadge(true);
-      setData(cache[key].value);
-      refreshFromServer(key).catch(() => {});
-      setTimeout(
-        () =>
-          resultsRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          }),
-        120
-      );
-      return;
-    }
+
+    const cacheKey = [
+      formData.disease.trim().toLowerCase(),
+      `mode:${searchMode}`,
+      `reps:${repertoriesSelected.join(",")}`,
+      `authors:${authorFilter.join(",")}`,
+      `sev:${severity}`,
+    ].join("|");
+
+    try {
+      const cached = await dbGet(cacheKey);
+      if (cached) {
+        setCacheBadge(true);
+        setData(cached);
+        refreshBackground(cacheKey).catch(() => {});
+        setTimeout(
+          () =>
+            resultsRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            }),
+          120
+        );
+        return;
+      }
+    } catch (e) {}
+
+    try {
+      controllerRef.current?.abort();
+    } catch (e) {}
+    controllerRef.current = new AbortController();
+    const reqId = ++latestReq.current;
 
     try {
       setLoading(true);
-      const response = await api.post(
+      // PRESERVED PAYLOAD EXACTLY: disease property must exist in body
+      const body = {
+        disease: formData.disease,
+        mode: searchMode,
+        repertories: repertoriesSelected,
+        authors: authorFilter,
+        severity,
+        page: 1,
+        limit: 200,
+      };
+
+      const resp = await api.post(
         `${API_URL}/ai/send_search_remedy/${user?._id}`,
-        { disease: formData.disease }
+        body,
+        { signal: controllerRef.current.signal }
       );
-      setData(response.data.data);
+      if (reqId !== latestReq.current) return;
+      const payload = resp?.data?.data;
+
+      // compute score & snippets client-side if not present
+      if (Array.isArray(payload)) {
+        payload.forEach((p) => {
+          if (p && typeof p === "object") {
+            p._score = computeScoreComponents(
+              p,
+              formData.disease,
+              severity,
+              authorWeights
+            );
+            p._snips = matchedSnips(p, formData.disease);
+          }
+        });
+      } else if (payload && typeof payload === "object") {
+        payload._score = computeScoreComponents(
+          payload,
+          formData.disease,
+          severity,
+          authorWeights
+        );
+        payload._snips = matchedSnips(payload, formData.disease);
+      }
+
+      setData(payload);
       setCacheBadge(false);
-      setCache(key, response.data.data);
+      await dbSet(cacheKey, payload);
+      // telemetry best-effort
+      try {
+        await api.post(`${API_URL}/telemetry/repertory_query`, {
+          user_id: user?._id,
+          query: {
+            disease: formData.disease,
+            mode: searchMode,
+            repertories: repertoriesSelected,
+            authors: authorFilter,
+            severity,
+          },
+          model_version: resp?.data?.meta?.model_version || null,
+          response_hash: resp?.data?.meta?.response_hash || null,
+          timestamp: Date.now(),
+        });
+      } catch (e) {}
       setTimeout(
         () =>
           resultsRef.current?.scrollIntoView({
@@ -351,437 +646,598 @@ const Repertory = () => {
           }),
         150
       );
-    } catch (error) {
-      console.error("Repertory search error:", error);
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+      console.error("Repertory search error:", err);
       setInlineError(
-        error?.response?.data?.message ||
+        err?.response?.data?.message ||
           "An unexpected error occurred while searching. Please retry."
       );
-      if (error.response && error.response.data) {
-        toast.error(error.response.data.message || "An error occurred.");
-      } else {
-        toast.error("An error occurred.");
-      }
+      if (err.response && err.response.data)
+        toast.error(err.response.data.message || "An error occurred.");
+      else toast.error("An error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshFromServer = async (key) => {
+  const refreshBackground = async (cacheKey) => {
     try {
-      const response = await api.post(
+      const resp = await api.post(
         `${API_URL}/ai/send_search_remedy/${user?._id}`,
-        { disease: formData.disease }
+        {
+          disease: formData.disease,
+          mode: searchMode,
+          repertories: repertoriesSelected,
+          authors: authorFilter,
+          severity,
+          page: 1,
+          limit: 200,
+        }
       );
-      setData(response.data.data);
-      setCache(key, response.data.data);
-    } catch (err) {}
+      const payload = resp?.data?.data;
+      if (Array.isArray(payload)) {
+        payload.forEach((p) => {
+          if (p && typeof p === "object") {
+            p._score = computeScoreComponents(
+              p,
+              formData.disease,
+              severity,
+              authorWeights
+            );
+            p._snips = matchedSnips(p, formData.disease);
+          }
+        });
+      } else if (payload && typeof payload === "object") {
+        payload._score = computeScoreComponents(
+          payload,
+          formData.disease,
+          severity,
+          authorWeights
+        );
+        payload._snips = matchedSnips(payload, formData.disease);
+      }
+      setData(payload);
+      await dbSet(cacheKey, payload);
+    } catch (e) {}
   };
 
-  // NEW: toggle authors in filter
-  const toggleAuthor = (author) => {
-    setAuthorFilter((prev) => {
-      if (prev.includes(author)) return prev.filter((a) => a !== author);
-      return [...prev, author];
+  /* ----------------------- author & repertory helpers ----------------------- */
+  const toggleRep = (r) =>
+    setRepertoriesSelected((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
+    );
+  const toggleAuthor = (a) =>
+    setAuthorFilter((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]
+    );
+  const setAuthorWeight = (a, v) =>
+    setAuthorWeights((prev) => ({ ...prev, [a]: Number(v) }));
+
+  /* ----------------------------- comparison helpers ---------------------------- */
+  const addCompare = (item) => {
+    const name = typeof item === "string" ? item : item.remedy || item.name;
+    if (!name) return;
+    if (comparison.includes(name)) {
+      toast.info("Already added");
+      return;
+    }
+    if (comparison.length >= 3) {
+      toast.info("Max 3");
+      return;
+    }
+    setComparison((prev) => [...prev, name]);
+  };
+  const removeCompare = (name) =>
+    setComparison((prev) => prev.filter((x) => x !== name));
+  const openCompare = () => {
+    if (comparison.length < 2) {
+      toast.info("Select 2+ remedies");
+      return;
+    }
+    setCompareOpen(true);
+  };
+
+  /* --------------------------- provenance viewer stub -------------------------- */
+  const openScan = async (src) => {
+    if (!src) {
+      toast.info("No scan info");
+      return;
+    }
+    if (src.scan_url_signed)
+      window.open(src.scan_url_signed, "_blank", "noopener");
+    else if (src.scan_id) {
+      try {
+        const resp = await api.get(
+          `${API_URL}/content/scan_signed/${src.scan_id}?user=${user?._id}`
+        );
+        if (resp?.data?.signed_url)
+          window.open(resp.data.signed_url, "_blank", "noopener");
+        else toast.info("Scan not available");
+      } catch (e) {
+        toast.info("Unable to fetch scan");
+      }
+    } else toast.info("No scan available");
+  };
+
+  /* ------------------------- virtualization render helpers ------------------------- */
+  const flatList = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? [data]
+      : [];
+  const filteredList = flatList.filter((item) => {
+    if (!authorFilter || authorFilter.length === 0) return true;
+    const srcs = Array.isArray(item?.sources_struct)
+      ? item.sources_struct
+      : Array.isArray(item?.sources)
+        ? item.sources
+        : [];
+    if (!srcs || srcs.length === 0) return false;
+    const combined = srcs
+      .map((s) =>
+        typeof s === "string" ? s : s.author || s.book || s.source || ""
+      )
+      .join(" ")
+      .toLowerCase();
+    return authorFilter.some((a) => combined.includes(a.toLowerCase()));
+  });
+  const total = filteredList.length;
+  const windowEnd = Math.min(windowStart + WINDOW, total);
+
+  useEffect(() => {
+    setWindowStart(0);
+  }, [data, authorFilter, repertoriesSelected, searchMode]);
+
+  const onScroll = useCallback((e) => {
+    const el = e.target;
+    const idx = Math.floor(el.scrollTop / ITEM_H);
+    setWindowStart(Math.max(0, idx));
+  }, []);
+
+  /* ----------------------------- render single item ---------------------------- */
+  const renderProvenance = (item) => {
+    const sources = Array.isArray(item.sources_struct)
+      ? item.sources_struct
+      : Array.isArray(item.sources)
+        ? item.sources
+        : [];
+    if (!sources || sources.length === 0)
+      return <div style={{ color: "#6c757d" }}>Provenance not available</div>;
+    return sources.map((s, i) => {
+      if (typeof s === "string")
+        return (
+          <div key={i} style={{ color: "#3b4a4f" }}>
+            {s}
+          </div>
+        );
+      return (
+        <div key={i} style={{ color: "#3b4a4f", marginBottom: 8 }}>
+          <div
+            style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+          >
+            <div>
+              <strong>{s.author || s.book || s.title || "Source"}</strong>
+              {s.edition ? ` • ${s.edition}` : ""}
+              {s.page ? ` • p.${s.page}` : ""}
+              {s.rubric_id ? ` • id:${s.rubric_id}` : ""}
+              {s.verified ? (
+                <Badge bg="info" style={{ marginLeft: 8 }}>
+                  Verified
+                </Badge>
+              ) : null}
+            </div>
+            <div>
+              {s.scan_url_signed || s.scan_id ? (
+                <Button size="sm" variant="link" onClick={() => openScan(s)}>
+                  View scan
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {s.excerpt ? (
+            <div style={{ color: "#4b5b63", marginTop: 6 }}>{s.excerpt}</div>
+          ) : null}
+        </div>
+      );
     });
   };
 
-  // NEW: computes whether an item matches author filter
-  const matchesSelectedAuthors = (item) => {
-    if (!authorFilter || authorFilter.length === 0) return true;
-    // If item is a string (no metadata), we can't assert its author => show only when no filters
-    if (typeof item === "string") return false;
-    const sourceAuthor =
-      item.source_author ||
-      (item.source && item.source.author) ||
-      (item.metadata && item.metadata.source_author) ||
-      null;
-    if (!sourceAuthor) return false;
-    // allow partial matches (e.g., "Kent" matching "Kent (Synthesis)")
-    const normalized = sourceAuthor.toLowerCase();
-    return authorFilter.some((a) =>
-      normalized.includes(String(a).toLowerCase())
-    );
-  };
+  const renderItem = (item, idx) => {
+    const n =
+      typeof item === "string" ? item : item.remedy || item.name || "Unknown";
+    const scoreObj =
+      item?._score ||
+      computeScoreComponents(item, formData.disease, severity, authorWeights);
+    const score = scoreObj.score;
+    const matched = Array.isArray(item.matched_rubrics)
+      ? item.matched_rubrics
+      : [];
+    const family = item.family || item.kingdom || item.source || "General";
+    const inCompare = comparison.includes(n);
 
-  // NEW: Materia Medica quick view
-  const openMM = (remedyName, item) => {
-    if (item && item.materia_medica) {
-      setMmContent(item.materia_medica);
-    } else if (item && item.mm_excerpt) {
-      setMmContent(item.mm_excerpt);
-    } else {
-      setMmContent(
-        `Materia medica content for ${remedyName} not available in payload.`
-      );
-    }
-    setMmModalOpen(true);
-  };
-
-  // NEW: Score explanation modal helper
-  const openScoreExplanation = () => setScoreModalOpen(true);
-
-  const renderResults = () => {
-    if (!data) return null;
-
-    // Use filteredData derived from authorFilter (non-destructive)
-    const sourceArray = Array.isArray(data) ? data : null;
-    const filtered = sourceArray
-      ? sourceArray.filter((it) => matchesSelectedAuthors(it))
-      : null;
-
-    // If data is string, show raw string
-    if (typeof data === "string") {
-      return (
-        <Card className="p-3" aria-live="polite">
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontSize: 14 }}>
-            {data}
-          </pre>
-        </Card>
-      );
-    }
-
-    // If we had an author filter, show a small filtered summary
-    const filteredCount = filtered ? filtered.length : 0;
-    const totalCount = sourceArray ? sourceArray.length : 0;
-    const showingArray = filtered !== null ? filtered : data;
-
-    if (sourceArray && filteredCount === 0) {
-      return (
-        <Card className="p-3">
-          <div style={{ color: "#6c757d" }}>
-            No results match the selected authors ({authorFilter.join(", ")}).
+    return (
+      <div
+        key={`${n}-${idx}`}
+        className="remedy"
+        role="article"
+        aria-labelledby={`rem-${idx}`}
+      >
+        <div className="rem-left">
+          <div className="badge-round" aria-hidden>
+            {(n || "").slice(0, 2).toUpperCase()}
           </div>
-          <div style={{ marginTop: 8 }}>
-            <Button
-              size="sm"
-              variant="outline-secondary"
-              onClick={() => setAuthorFilter([])}
-            >
-              Clear author filters
-            </Button>
-          </div>
-        </Card>
-      );
-    }
-
-    if (Array.isArray(showingArray) && showingArray.length > 0) {
-      // If filtered and reduced, show badge
-      return showingArray.map((item, idx) => {
-        const remedyName =
-          typeof item === "string" ? item : item.remedy || "Unknown Remedy";
-        const score =
-          typeof item === "object" && item.score
-            ? item.score
-            : Math.round(Math.random() * 60 + 20);
-        const matched =
-          typeof item === "object" && item.matched_rubrics
-            ? item.matched_rubrics
-            : [];
-        const potency =
-          typeof item === "object" && item.potency_suggestion
-            ? item.potency_suggestion
-            : score > 75
-              ? "30C"
-              : "6C";
-        const family =
-          typeof item === "object" && item.family ? item.family : "General";
-        const isInComparison = comparison.includes(remedyName);
-
-        // provenance fields (best-effort)
-        const sourceAuthor =
-          typeof item === "object" &&
-          (item.source_author ||
-            (item.source && item.source.author) ||
-            (item.metadata && item.metadata.source_author))
-            ? item.source_author ||
-              item.source?.author ||
-              item.metadata?.source_author
-            : null;
-        const sourceEdition =
-          typeof item === "object" &&
-          (item.source_edition ||
-            item.source?.edition ||
-            item.metadata?.source_edition)
-            ? item.source_edition ||
-              item.source?.edition ||
-              item.metadata?.source_edition
-            : null;
-        const sourcePage =
-          typeof item === "object" &&
-          (item.source_page || item.source?.page || item.metadata?.source_page)
-            ? item.source_page ||
-              item.source?.page ||
-              item.metadata?.source_page
-            : null;
-
-        return (
-          <div
-            className="remedy-card"
-            key={`${remedyName}-${idx}`}
-            role="article"
-            aria-labelledby={`remedy-${idx}`}
-          >
-            <div style={{ flex: 1 }}>
-              <div id={`remedy-${idx}`} className="remedy-name">
-                {remedyName}
-              </div>
-              <div className="remedy-meta">
-                <span style={{ marginRight: 10 }}>
-                  <strong>Family:</strong> {family}
-                </span>
-                <span style={{ marginRight: 10 }}>
-                  <strong>Potency:</strong> {potency}
-                </span>
-                <Badge
-                  bg="light"
-                  text="dark"
-                  style={{
-                    border: "1px solid rgba(0,0,0,0.04)",
-                    marginRight: 6,
-                  }}
-                >
-                  Score {score}
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="link"
-                  onClick={openScoreExplanation}
-                  title="Explain score"
-                >
-                  <BsInfoCircle />
-                </Button>
-              </div>
-
-              {/* provenance visible to clinician */}
-              <div style={{ fontSize: 12, color: "#556971", marginBottom: 8 }}>
-                <strong>Source:</strong>{" "}
-                {sourceAuthor ? (
-                  <>
-                    {sourceAuthor}
-                    {sourceEdition ? ` • ${sourceEdition}` : ""}
-                    {sourcePage ? ` • p.${sourcePage}` : ""}
-                  </>
-                ) : (
-                  <em>
-                    Unknown{" "}
-                    <Button
-                      size="sm"
-                      variant="link"
-                      onClick={() => toast.info("Request provenance (Pro)")}
-                    >
-                      Add provenance
-                    </Button>
-                  </em>
-                )}
-              </div>
-
-              <div style={{ marginBottom: 8 }}>
-                <ProgressBar
-                  now={score}
-                  label={`${score}%`}
-                  style={{ height: 8, borderRadius: 8 }}
-                />
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {matched.slice(0, 5).map((m, i) => (
-                  <div className="remedy-chip" key={i} title={m}>
-                    {m}
-                  </div>
-                ))}
-                {matched.length > 5 && (
-                  <div className="remedy-chip">+{matched.length - 5} more</div>
-                )}
-              </div>
-
-              {expandedRemedy === remedyName && (
-                <div className="expanded-details" aria-hidden={false}>
-                  <div>
-                    <strong>
-                      Matched Rubrics (with provenance when available):
-                    </strong>
-                  </div>
-                  <ul style={{ marginTop: 8 }}>
-                    {matched.length ? (
-                      matched.map((r, i) => {
-                        // try to get provenance per rubric if present
-                        const rubricSource =
-                          typeof item === "object" &&
-                          item.matched_sources &&
-                          item.matched_sources[i]
-                            ? item.matched_sources[i]
-                            : null;
-                        return (
-                          <li key={i}>
-                            {r}{" "}
-                            {rubricSource ? (
-                              <span style={{ color: "#6c757d", fontSize: 12 }}>
-                                —{" "}
-                                {rubricSource.author ||
-                                  rubricSource.source ||
-                                  "Unknown"}
-                                {rubricSource.page
-                                  ? ` p.${rubricSource.page}`
-                                  : ""}
-                              </span>
-                            ) : null}
-                          </li>
-                        );
-                      })
-                    ) : (
-                      <li>Details not provided</li>
-                    )}
-                  </ul>
-                </div>
-              )}
+          <div style={{ flex: 1 }}>
+            <div id={`rem-${idx}`} className="rem-title">
+              {n}
+            </div>
+            <div className="rem-meta">
+              <strong>Family:</strong> {family} •{" "}
+              <span style={{ color: "#6c757d" }}>{item.source || ""}</span>
             </div>
 
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
                 gap: 10,
-                alignItems: "flex-end",
-                minWidth: 140,
+                alignItems: "center",
+                marginBottom: 10,
               }}
             >
-              <div style={{ display: "flex", gap: 8 }}>
-                <Button
-                  size="sm"
-                  variant={
-                    expandedRemedy === remedyName
-                      ? "outline-secondary"
-                      : "outline-primary"
-                  }
-                  onClick={() =>
-                    setExpandedRemedy(
-                      expandedRemedy === remedyName ? null : remedyName
-                    )
-                  }
-                  aria-expanded={expandedRemedy === remedyName}
-                >
-                  {expandedRemedy === remedyName ? "Collapse" : "Details"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const ev = {
-                      target: { name: "disease", value: remedyName },
-                    };
-                    handleChange(ev);
-                    toast.info(`${remedyName} copied into symptom field.`);
-                  }}
-                  variant="secondary"
-                >
-                  Quick add
-                </Button>
-              </div>
+              <div style={{ fontWeight: 800 }}>{score}%</div>
+              <div style={{ color: "#6c757d", fontSize: 13 }}>confidence</div>
+              <Button
+                size="sm"
+                variant="link"
+                onClick={() => setScoreOpen(true)}
+                title="Explain score"
+              >
+                <BsInfoCircle />
+              </Button>
+            </div>
 
+            <ProgressBar now={score} style={{ height: 8, borderRadius: 8 }} />
+
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {matched && matched.length ? (
+                matched.slice(0, 5).map((m, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      background: "rgba(126,163,255,0.06)",
+                    }}
+                  >
+                    {typeof m === "string" ? m : m.rubric || m.text}
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    background: "rgba(240,240,240,0.6)",
+                  }}
+                >
+                  No keynotes
+                </div>
+              )}
+            </div>
+
+            {/* expanded details */}
+            {item._expanded && (
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  marginTop: 6,
-                  alignItems: "flex-end",
+                  marginTop: 12,
+                  background: "rgba(126,163,255,0.03)",
+                  padding: 10,
+                  borderRadius: 8,
                 }}
               >
-                <Button
-                  size="sm"
-                  variant={isInComparison ? "success" : "outline-success"}
-                  onClick={() => {
-                    if (isInComparison) {
-                      setComparison((c) => c.filter((r) => r !== remedyName));
-                    } else {
-                      setComparison((c) =>
-                        c.length < 3 ? [...c, remedyName] : c
+                <div style={{ fontWeight: 700 }}>Matched Rubrics</div>
+                <ul style={{ marginTop: 8 }}>
+                  {matched.length ? (
+                    matched.map((r, i) => {
+                      const prov =
+                        Array.isArray(item.matched_sources) &&
+                        item.matched_sources[i]
+                          ? item.matched_sources[i]
+                          : null;
+                      return (
+                        <li key={i}>
+                          {typeof r === "string" ? r : r.rubric || r.text}{" "}
+                          {prov ? (
+                            <span style={{ color: "#6c757d", fontSize: 12 }}>
+                              {" "}
+                              — {prov.author || prov.source}
+                              {prov.page ? ` p.${prov.page}` : ""}
+                            </span>
+                          ) : null}
+                        </li>
                       );
-                      if (comparison.length >= 3)
-                        toast.info("Max 3 remedies for comparison.");
-                    }
-                  }}
-                >
-                  {isInComparison ? "Added" : "Compare"}
-                </Button>
+                    })
+                  ) : (
+                    <li>No matched rubrics</li>
+                  )}
+                </ul>
 
-                <div style={{ display: "flex", gap: 6 }}>
-                  <Button
-                    size="sm"
-                    variant="outline-primary"
-                    onClick={() => openMM(remedyName, item)}
-                    aria-label={`Materia Medica for ${remedyName}`}
-                    title="Open Materia Medica"
-                  >
-                    <BsInfoCircle />
-                  </Button>
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontWeight: 700 }}>Provenance</div>
+                  {renderProvenance(item)}
+                </div>
 
-                  <Button
-                    size="sm"
-                    variant="outline-primary"
-                    onClick={() => {
-                      const printWindow = window.open("", "_blank");
-                      printWindow.document.write(
-                        `<pre>${JSON.stringify(item, null, 2)}</pre>`
-                      );
-                      printWindow.document.close();
-                      printWindow.print();
-                    }}
-                    aria-label={`Print ${remedyName}`}
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontWeight: 700 }}>Matched snippets</div>
+                  <div
+                    style={{ maxHeight: 160, overflow: "auto", marginTop: 6 }}
                   >
-                    <BsPrinter />
-                  </Button>
+                    {(item._snips || matchedSnips(item, formData.disease)).map(
+                      (s, si) => (
+                        <div key={si} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>
+                            {s.source}
+                          </div>
+                          <div
+                            style={{ fontSize: 13 }}
+                            dangerouslySetInnerHTML={{
+                              __html: s.html || esc("—"),
+                            }}
+                          />
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
-        );
-      });
-    }
+        </div>
 
-    return (
-      <Card className="p-3">
-        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </Card>
+        <div className="controls-col">
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              size="sm"
+              variant={item._expanded ? "outline-secondary" : "outline-primary"}
+              onClick={() => {
+                const clone = Array.isArray(data)
+                  ? [...data]
+                  : data
+                    ? [data]
+                    : [];
+                const found = clone.find((d) => (d.remedy || d.name) === n);
+                if (found) found._expanded = !found._expanded;
+                setData(Array.isArray(data) ? clone : clone[0] || "");
+              }}
+            >
+              {item._expanded ? "Collapse" : "Details"}
+            </Button>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                handleChange({ target: { name: "disease", value: n } });
+                toast.info(`${n} copied into symptom field.`);
+              }}
+            >
+              Quick add
+            </Button>
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <Button
+              size="sm"
+              variant={inCompare ? "success" : "outline-success"}
+              onClick={() => {
+                inCompare ? removeCompare(n) : addCompare(item);
+              }}
+            >
+              {inCompare ? "Added" : "Compare"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={() => {
+                setMmContent(
+                  item.materia_medica ||
+                    item.mm_excerpt ||
+                    `Materia medica for ${n} not available.`
+                );
+                setMmOpen(true);
+              }}
+            >
+              <BsInfoCircle />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={() => {
+                const w = window.open("", "_blank");
+                w.document.write(
+                  `<pre>${esc(JSON.stringify(item, null, 2))}</pre>`
+                );
+                w.document.close();
+                w.print();
+              }}
+            >
+              <BsPrinter />
+            </Button>
+          </div>
+        </div>
+      </div>
     );
   };
 
-  // Render
-  return (
-    <Row className="justify-content-center repertory-root">
-      <div
-        className="repertory-card"
-        role="region"
-        aria-labelledby="repertory-title"
-      >
-        <div className="top-actions">
-          <div style={{ fontSize: 13, color: "#495057" }}>
-            Hits left: <strong>{user?.hit_count ?? "-"}</strong>
+  /* ----------------------------- render results area ----------------------------- */
+  const renderResults = () => {
+    if (!data) return null;
+    if (typeof data === "string")
+      return (
+        <div style={{ padding: 12 }}>
+          <pre>{data}</pre>
+        </div>
+      );
+    if (!Array.isArray(data) || filteredList.length === 0)
+      return (
+        <div style={{ padding: 12, color: "#6c757d" }}>
+          No results match your filters.
+        </div>
+      );
+
+    const slice = filteredList.slice(windowStart, windowEnd);
+    return (
+      <>
+        <div
+          style={{
+            marginBottom: 8,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            {filteredList.length} remedies found
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {comparison.length > 1 && (
+              <Button size="sm" variant="outline-primary" onClick={openCompare}>
+                Open Compare
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              onClick={() => {
+                setData("");
+                setComparison([]);
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ height: windowStart * ITEM_H }} aria-hidden />
+          {slice.map((it, i) => (
+            <div
+              key={`wrap-${i}`}
+              style={{
+                height: ITEM_H,
+                marginBottom: 8,
+                boxSizing: "border-box",
+              }}
+            >
+              {renderItem(it, windowStart + i)}
+            </div>
+          ))}
+          <div
+            style={{
+              height: Math.max(0, (filteredList.length - windowEnd) * ITEM_H),
+            }}
+            aria-hidden
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          <Button
+            size="sm"
+            variant="light"
+            onClick={() => setWindowStart(Math.max(0, windowStart - WINDOW))}
+            disabled={windowStart === 0}
+          >
+            Prev
+          </Button>
+          <div style={{ alignSelf: "center", color: "#6c757d" }}>
+            Showing {windowStart + 1}-{windowEnd} of {filteredList.length}
           </div>
           <Button
             size="sm"
-            variant="outline-primary"
-            onClick={() => navigate("/app/billing")}
-            className="pill-btn"
+            variant="light"
+            onClick={() =>
+              setWindowStart(
+                Math.min(
+                  Math.max(0, filteredList.length - WINDOW),
+                  windowStart + WINDOW
+                )
+              )
+            }
+            disabled={windowEnd >= filteredList.length}
           >
-            Recharge
+            Next
           </Button>
         </div>
+      </>
+    );
+  };
 
-        <div className="repertory-header">
+  /* ------------------------------- UI render ------------------------------- */
+  return (
+    <Row className="justify-content-center rep-root">
+      <div className="rep-card" style={{ position: "relative" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+            marginBottom: 12,
+          }}
+        >
+          <div className="rep-badge">HM</div>
           <div>
-            <h4 id="repertory-title" className="repertory-title">
-              Repertory (AI)
-            </h4>
-            <div className="repertory-sub">
-              Doctor-side repertory search — clinical view
+            <h4 className="rep-title">Repertory (AI)</h4>
+            <div className="rep-sub">
+              Advanced repertory search, provenance and explainability for
+              clinicians
             </div>
+          </div>
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            <div style={{ fontSize: 13, color: "#495057" }}>
+              Hits left: <strong>{user?.hit_count ?? "-"}</strong>
+            </div>
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={() => navigate("/plans")}
+              style={{ borderRadius: 12 }}
+            >
+              Recharge
+            </Button>
           </div>
         </div>
 
         {inlineError && (
-          <div className="inline-error" role="alert">
+          <div
+            style={{
+              background: "rgba(255,230,230,0.95)",
+              color: "#842029",
+              padding: 12,
+              borderRadius: 10,
+              marginBottom: 12,
+            }}
+          >
             {inlineError}{" "}
             <Button
               size="sm"
@@ -793,25 +1249,19 @@ const Repertory = () => {
           </div>
         )}
 
-        <Form
-          onSubmit={handleSubmit}
-          className="mb-2"
-          aria-label="Repertory search form"
-        >
+        <Form onSubmit={handleSubmit} aria-label="Repertory search form">
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
             <Form.Label column sm={2} style={{ textAlign: "right" }}>
               Symptom:
             </Form.Label>
             <Col sm={10}>
               <div className="search-row">
-                <div className="search-control" ref={suggestionsRef}>
-                  <BsSearch className="search-icon-left" aria-hidden />
+                <div className="search-box" ref={suggestionsRef}>
+                  <BsSearch className="search-left-ic" />
                   <input
-                    aria-label="Symptom search"
-                    className="search-input"
-                    type="text"
-                    placeholder="Search problem or rubric (e.g., anxiety, restlessness)..."
                     name="disease"
+                    className="search-input"
+                    placeholder="e.g., anxiety - anticipatory, restlessness at night..."
                     value={formData.disease}
                     onChange={handleChange}
                     onFocus={() =>
@@ -821,216 +1271,204 @@ const Repertory = () => {
                     }
                     autoComplete="off"
                     aria-autocomplete="list"
-                    aria-controls="repertory-suggestions"
+                    aria-controls="rep-sugs"
                     aria-expanded={showSuggestions}
-                    isInvalid={!!errors.disease}
                   />
-                  <div className="search-icon-right" aria-hidden>
+                  <div className="search-right">
                     <div
-                      style={{
-                        fontSize: 12,
-                        color: "#6c757d",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
+                      style={{ display: "flex", gap: 8, alignItems: "center" }}
                     >
-                      <BsClockHistory />
-                      <small>{severity}</small>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "#6c757d",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <BsClockHistory /> <small>{severity}</small>
+                      </div>
+                      <select
+                        className="mode-select"
+                        value={searchMode}
+                        onChange={(e) => setSearchMode(e.target.value)}
+                        aria-label="Search mode"
+                      >
+                        <option value="exact">Exact</option>
+                        <option value="fuzzy">Fuzzy</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="semantic">Semantic</option>
+                      </select>
                     </div>
                   </div>
 
                   {showSuggestions && suggestions.length > 0 && (
                     <div
-                      id="repertory-suggestions"
-                      className="suggestions"
-                      role="listbox"
+                      id="rep-sugs"
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: "calc(100% + 10px)",
+                        background: "white",
+                        borderRadius: 12,
+                        boxShadow: "0 18px 38px rgba(10,20,40,0.08)",
+                        zIndex: 60,
+                        maxHeight: 260,
+                        overflow: "auto",
+                        border: "1px solid rgba(10,60,80,0.04)",
+                      }}
                     >
                       {suggestions.map((s, i) => (
                         <div
+                          key={i}
+                          id={`sugg-${i}`}
                           role="option"
                           tabIndex={0}
-                          key={i}
-                          className={`suggestion-item ${i === activeSuggestionIdx ? "active" : ""}`}
-                          onMouseDown={(e) => {
+                          style={{
+                            padding: 12,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            cursor: "pointer",
+                            background:
+                              i === activeSuggestionIdx
+                                ? "linear-gradient(90deg, rgba(126,163,255,0.04), rgba(255,144,193,0.03))"
+                                : "transparent",
+                          }}
+                          onMouseDown={() => {
                             handleChange({
                               target: { name: "disease", value: s },
                             });
                             setShowSuggestions(false);
+                            setActiveSuggestionIdx(-1);
                           }}
                           onMouseEnter={() => setActiveSuggestionIdx(i)}
                         >
-                          {s}
+                          <div style={{ fontWeight: 700 }}>{s}</div>
+                          <div style={{ color: "#6c757d", fontSize: 13 }}>
+                            Suggested
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={loading || user?.hit_count === 0}
-                  className="pill-btn"
-                  aria-label="Submit repertory search"
-                >
-                  {loading ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden
-                      />{" "}
-                      <span style={{ marginLeft: 8 }}>Searching...</span>
-                    </>
-                  ) : (
-                    "Submit"
-                  )}
-                </Button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    type="submit"
+                    className="search-btn"
+                    disabled={loading || user?.hit_count === 0}
+                  >
+                    {loading ? (
+                      <>
+                        <Spinner as="span" animation="border" size="sm" />{" "}
+                        <span style={{ marginLeft: 8 }}>Searching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <BsSearch /> Search
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline-secondary"
+                    onClick={() => {
+                      setFormData({ disease: "" });
+                      setData("");
+                      setSuggestions([]);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+
+              <div className="chips-row" style={{ marginTop: 12 }}>
+                <div style={{ fontWeight: 700, color: "#375e84" }}>
+                  <BsFillLightningFill /> Repertories:
+                </div>
+                {availableRepertories.map((r) => (
+                  <div
+                    key={r}
+                    className="chip"
+                    onClick={() => toggleRep(r)}
+                    style={{
+                      border: repertoriesSelected.includes(r)
+                        ? "2px solid rgba(126,163,255,0.5)"
+                        : undefined,
+                    }}
+                  >
+                    {r}
+                  </div>
+                ))}
+              </div>
+
+              <div className="chips-row" style={{ marginTop: 8 }}>
+                <div style={{ fontWeight: 700, color: "#375e84" }}>
+                  Authors:
+                </div>
+                {authorsList.map((r) => (
+                  <div
+                    key={r}
+                    className="chip"
+                    onClick={() => toggleRep(r)}
+                    style={{
+                      border: repertoriesSelected.includes(r)
+                        ? "2px solid rgba(126,163,255,0.5)"
+                        : undefined,
+                    }}
+                  >
+                    {r}
+                  </div>
+                ))}
 
                 <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => navigate("/app/dashboard")}
-                  className="pill-btn"
+                  size="sm"
+                  variant="outline-secondary"
+                  onClick={() => setAuthorWeights({})}
                 >
-                  Cancel
+                  Reset weights
                 </Button>
               </div>
 
-              <Form.Control.Feedback type="invalid">
-                {errors.disease}
-              </Form.Control.Feedback>
-            </Col>
-          </Form.Group>
+              <div className="author-weights"></div>
 
-          <Form.Group as={Row} className="mb-3">
-            <Col sm={{ span: 10, offset: 2 }}>
-              <div className="meta-row">
-                <div
-                  className="chip"
-                  onClick={() => {
-                    handleChange({
-                      target: { name: "disease", value: "anxiety" },
-                    });
-                  }}
-                >
-                  Anxiety
-                </div>
-                <div
-                  className="chip"
-                  onClick={() =>
-                    handleChange({
-                      target: { name: "disease", value: "insomnia" },
-                    })
-                  }
-                >
-                  Insomnia
-                </div>
-                <div
-                  className="chip"
-                  onClick={() =>
-                    handleChange({
-                      target: { name: "disease", value: "headache" },
-                    })
-                  }
-                >
-                  Headache
-                </div>
-
-                <div
-                  style={{
-                    marginLeft: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <small style={{ color: "#6c757d" }}>Severity</small>
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ minWidth: 120, fontWeight: 700 }}>Severity</div>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <div
+                    className="glass-track-fill"
+                    style={{
+                      width: `${((severity - 1) / 4) * 100}%`,
+                      opacity: 0.2,
+                    }}
+                  />
                   <input
-                    className="severity-slider"
+                    className="glass-slider"
                     type="range"
                     min="1"
                     max="5"
                     value={severity}
-                    onChange={(e) => setSeverity(e.target.value)}
-                    aria-label="Severity slider"
+                    onChange={(e) => setSeverity(Number(e.target.value))}
+                    aria-label="Severity"
                   />
                 </div>
-
-                {/* AUTHOR FILTER UI (NEW) */}
                 <div
-                  style={{ marginLeft: "auto", position: "relative" }}
-                  ref={authorDropdownRef}
+                  style={{ minWidth: 42, textAlign: "center", fontWeight: 800 }}
                 >
-                  <button
-                    type="button"
-                    className="author-btn"
-                    aria-haspopup="true"
-                    aria-expanded={authorDropdownOpen}
-                    onClick={() => setAuthorDropdownOpen((v) => !v)}
-                    title="Filter by repertory / author"
-                  >
-                    Authors{" "}
-                    {authorFilter.length > 0 ? `(${authorFilter.length})` : ""}
-                  </button>
-
-                  {authorDropdownOpen && (
-                    <div
-                      className="author-dropdown"
-                      role="menu"
-                      aria-label="Author filters"
-                    >
-                      <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                        Select authors
-                      </div>
-                      <div style={{ maxHeight: 160, overflow: "auto" }}>
-                        {authorsList.map((a) => (
-                          <div
-                            key={a}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              padding: "4px 2px",
-                            }}
-                          >
-                            <FormCheck
-                              type="checkbox"
-                              id={`author-${a}`}
-                              checked={authorFilter.includes(a)}
-                              onChange={() => toggleAuthor(a)}
-                              label={<span style={{ fontSize: 13 }}>{a}</span>}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginTop: 8,
-                        }}
-                      >
-                        <Button
-                          size="sm"
-                          variant="outline-secondary"
-                          onClick={() => setAuthorFilter([])}
-                        >
-                          Clear
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => setAuthorDropdownOpen(false)}
-                        >
-                          Done
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  {severity}
                 </div>
               </div>
             </Col>
@@ -1038,12 +1476,17 @@ const Repertory = () => {
         </Form>
 
         {user?.hit_count === 0 && (
-          <p className="text-danger mt-2">
+          <div style={{ color: "#c92a2a", marginBottom: 8 }}>
             You have reached your limit please recharge your limit.
-          </p>
+          </div>
         )}
 
-        <div className="results-area" ref={resultsRef} aria-live="polite">
+        <div className="results" ref={resultsRef} onScroll={onScroll}>
+          {cacheBadge && (
+            <div style={{ marginBottom: 8 }}>
+              <Badge bg="info">From Cache</Badge>
+            </div>
+          )}
           {loading && (
             <div style={{ padding: 12 }}>
               <div
@@ -1065,101 +1508,53 @@ const Repertory = () => {
               />
             </div>
           )}
-
-          {cacheBadge && (
-            <div style={{ marginBottom: 8 }}>
-              <Badge bg="info">From Cache</Badge>
-            </div>
-          )}
-
           {data ? (
-            <>
-              {/* If authorFilter is active, show current filter badges */}
-              {authorFilter && authorFilter.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 8,
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>Filters:</div>
-                  {authorFilter.map((a) => (
-                    <Badge
-                      key={a}
-                      bg="secondary"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => toggleAuthor(a)}
-                    >
-                      {a} ✕
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 700 }}>
-                  {Array.isArray(data)
-                    ? `${data.length} remedies found`
-                    : "Search results"}
-                </div>
-
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {Array.isArray(data) && comparison.length > 1 && (
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      onClick={() => {
-                        const comp = data.filter((d) =>
-                          comparison.includes(
-                            typeof d === "string" ? d : d.remedy
-                          )
-                        );
-                        const text = comp
-                          .map((c) => (typeof c === "string" ? c : c.remedy))
-                          .join("\n");
-                        const w = window.open("", "_blank");
-                        w.document.write(`<pre>${text}</pre>`);
-                        w.print();
-                      }}
-                    >
-                      Print Comparison
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline-secondary"
-                    onClick={() => {
-                      setData("");
-                      setComparison([]);
-                    }}
-                    aria-label="Clear results"
-                  >
-                    Clear
-                  </Button>
-                </div>
-              </div>
-
-              {renderResults()}
-            </>
+            renderResults()
           ) : (
-            <div style={{ padding: 12, color: "#6c757d" }}>
-              No results yet. Enter a symptom and press Submit.
-            </div>
+            <div style={{ padding: 12, color: "#6c757d" }}>No results</div>
           )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 16,
+          }}
+        >
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ fontWeight: 800 }}>{comparison.length}</div>
+            <div style={{ color: "#6c757d" }}>selected for compare</div>
+            {comparison.map((c, i) => (
+              <Badge
+                key={i}
+                bg="light"
+                text="dark"
+                style={{ border: "1px solid rgba(0,0,0,0.06)" }}
+              >
+                {c}
+              </Badge>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={() => setComparison([])}
+            >
+              Clear
+            </Button>
+            <Button variant="primary" size="sm" onClick={openCompare}>
+              Open Compare
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Materia Medica modal */}
-      <Modal show={mmModalOpen} onHide={() => setMmModalOpen(false)} size="lg">
+      {/* materia-medica modal */}
+      <Modal show={mmOpen} onHide={() => setMmOpen(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Materia Medica</Modal.Title>
         </Modal.Header>
@@ -1167,52 +1562,287 @@ const Repertory = () => {
           {mmContent ? (
             <pre style={{ whiteSpace: "pre-wrap" }}>{mmContent}</pre>
           ) : (
-            <div>No materia medica found.</div>
+            <div>No materia medica available</div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setMmModalOpen(false)}>
+          <Button variant="secondary" onClick={() => setMmOpen(false)}>
             Close
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Score explanation modal */}
-      <Modal
-        show={scoreModalOpen}
-        onHide={() => setScoreModalOpen(false)}
-        size="md"
-      >
+      {/* score explanation */}
+      <Modal show={scoreOpen} onHide={() => setScoreOpen(false)} size="md">
         <Modal.Header closeButton>
-          <Modal.Title>How the Score is Calculated</Modal.Title>
+          <Modal.Title>Score breakdown</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div style={{ fontSize: 14, color: "#35484a" }}>
             <p>
-              <strong>Quick explanation:</strong>
+              <strong>What the score means</strong>
             </p>
             <ul>
               <li>
-                Score = weighted rubric match. Higher rubric grades weigh more.
+                <strong>Degree match</strong> — tokens from your query found in
+                rubrics/provings.
               </li>
               <li>
-                Sources (repertory/author) are given higher trust weight if
-                present.
+                <strong>Source trust</strong> — number and quality of sources
+                (author weights applied).
               </li>
-              <li>Concomitants and modality matches increase the score.</li>
               <li>
-                This is a clinician-aid; review original rubric sources before
-                prescribing.
+                <strong>Rubric weight</strong> — aggregated grade of matched
+                rubrics.
+              </li>
+              <li>
+                <strong>Severity match</strong> — closeness to selected
+                severity.
               </li>
             </ul>
-            <p style={{ fontSize: 13, color: "#6c757d" }}>
-              For full transparency you should enable rubric provenance and
-              check original entries in Materia Medica.
+            <p style={{ color: "#6c757d" }}>
+              Server should return structured fields (sources_struct,
+              matched_rubrics, model_version, response_hash) for full
+              transparency.
             </p>
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setScoreModalOpen(false)}>
+          <Button variant="secondary" onClick={() => setScoreOpen(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* compare modal */}
+      <Modal
+        show={compareOpen}
+        onHide={() => setCompareOpen(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Compare Remedies</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ marginBottom: 10, color: "#6c757d" }}>
+            Shared keynotes (center) vs unique (per remedy). Matched snippets
+            below each card.
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3,1fr)",
+              gap: 12,
+            }}
+          >
+            {comparison.map((name, i) => {
+              const found = flatList.find(
+                (d) => (typeof d === "string" ? d : d.remedy || d.name) === name
+              ) || { remedy: name };
+              const snips = matchedSnips(found, formData.disease);
+              const keys = [...keynoteSet(found)];
+              return (
+                <div
+                  key={i}
+                  className="remedy"
+                  style={{ flexDirection: "column", alignItems: "stretch" }}
+                >
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <div style={{ fontWeight: 800 }}>
+                      {found.remedy || found.name || name}
+                    </div>
+                    <div style={{ color: "#6c757d" }}>
+                      {found._score ? found._score.score + "%" : "—"}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                      Keynotes
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {keys.length ? (
+                        keys.slice(0, 8).map((k, ii) => (
+                          <div
+                            key={ii}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 8,
+                              background: "rgba(126,163,255,0.06)",
+                            }}
+                          >
+                            {k}
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ color: "#6c757d" }}>—</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                      Matched snippets
+                    </div>
+                    <div
+                      style={{
+                        maxHeight: 140,
+                        overflow: "auto",
+                        padding: 6,
+                        border: "1px solid rgba(0,0,0,0.04)",
+                        borderRadius: 6,
+                      }}
+                    >
+                      {snips.length ? (
+                        snips.map((s, si) => (
+                          <div key={si} style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>
+                              {s.source}
+                            </div>
+                            <div
+                              style={{ fontSize: 13 }}
+                              dangerouslySetInnerHTML={{
+                                __html: s.html || esc("—"),
+                              }}
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ color: "#6c757d" }}>
+                          No matched snippets
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => removeCompare(name)}
+                    >
+                      <BsXLg />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => {
+                        setCompareOpen(false);
+                        setFormData({ disease: name });
+                      }}
+                    >
+                      Open
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* venn/diff center */}
+            <div className="remedy" style={{ flexDirection: "column" }}>
+              <div style={{ fontWeight: 800 }}>Venn / Diff</div>
+              <div style={{ marginTop: 10 }}>
+                {(() => {
+                  const items = comparison.map(
+                    (n) =>
+                      flatList.find(
+                        (d) =>
+                          (typeof d === "string" ? d : d.remedy || d.name) === n
+                      ) || { remedy: n }
+                  );
+                  const diff = computeVenn(items);
+                  return (
+                    <>
+                      <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                        Shared Keynotes
+                      </div>
+                      <div
+                        style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
+                      >
+                        {diff.shared.length ? (
+                          diff.shared.map((s, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                padding: "6px 10px",
+                                borderRadius: 8,
+                                background: "rgba(255,244,182,0.5)",
+                              }}
+                            >
+                              {s}
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ color: "#6c757d" }}>None</div>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          marginTop: 10,
+                          marginBottom: 6,
+                        }}
+                      >
+                        Unique
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        {diff.unique.map((arr, ii) => (
+                          <div key={ii}>
+                            <div style={{ fontWeight: 800 }}>
+                              {comparison[ii]}
+                            </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 6,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              {arr.length ? (
+                                arr.slice(0, 8).map((u, uj) => (
+                                  <div
+                                    key={uj}
+                                    style={{
+                                      padding: "6px 10px",
+                                      borderRadius: 8,
+                                      background: "rgba(240,240,240,0.6)",
+                                    }}
+                                  >
+                                    {u}
+                                  </div>
+                                ))
+                              ) : (
+                                <div style={{ color: "#6c757d" }}>—</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setCompareOpen(false)}>
             Close
           </Button>
         </Modal.Footer>

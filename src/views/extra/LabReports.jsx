@@ -295,15 +295,6 @@ const LabReports = () => {
                 <FiClock style={{ marginRight: 6 }} /> Hits:{" "}
                 {user?.hit_count ?? "—"}
               </Badge>
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={() => {
-                  toast.info("Help: upload JPG/PNG/PDF up to 12MB");
-                }}
-              >
-                Help
-              </Button>
             </div>
           </div>
 
@@ -384,24 +375,6 @@ const LabReports = () => {
                       flex: 1,
                     }}
                   >
-                    <div style={{ width: 82, textAlign: "center" }}>
-                      <div
-                        style={{
-                          width: 62,
-                          height: 62,
-                          borderRadius: 12,
-                          background:
-                            "linear-gradient(90deg,var(--accentA),var(--accentB))",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        <FiUpload size={28} />
-                      </div>
-                    </div>
-
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700 }}>
                         Drag & drop a report or click Upload
@@ -546,13 +519,6 @@ const LabReports = () => {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    variant="outline-secondary"
-                    onClick={attemptQuickParse}
-                    disabled={!formData.report || isProcessingParse}
-                  >
-                    {isProcessingParse ? "Parsing..." : "Extract values"}
-                  </Button>
 
                   {user?.hit_count === 0 && (
                     <div className="text-danger">
@@ -595,7 +561,7 @@ const LabReports = () => {
                   <div style={{ fontWeight: 700 }}>
                     Parsed values & quick summary
                   </div>
-                  <div className="small-muted">Auto-parse snapshot</div>
+                  <div className="small-muted"></div>
                 </div>
 
                 <div style={{ marginTop: 12 }}>
@@ -684,14 +650,11 @@ const LabReports = () => {
 
               {/* recent uploads */}
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>
-                  Recent uploads
-                </div>
                 <div
                   style={{ display: "flex", gap: 8, flexDirection: "column" }}
                 >
                   {recent.length === 0 ? (
-                    <div className="small-muted">No recent uploads</div>
+                    <div className="small-muted"></div>
                   ) : (
                     recent.map((r, i) => (
                       <div
@@ -780,38 +743,6 @@ const LabReports = () => {
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
               >
                 <div style={{ fontWeight: 700 }}>Quick actions</div>
-
-                <div
-                  style={{ display: "flex", gap: 8, flexDirection: "column" }}
-                >
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => {
-                      toast.info(
-                        "No patient linked — use 'Load' to prefill or link from patient record."
-                      );
-                    }}
-                  >
-                    Link to patient
-                  </Button>
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => {
-                      toast.info("Mark as urgent (stub)");
-                    }}
-                  >
-                    Mark urgent
-                  </Button>
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(data || "");
-                      toast.info("Copied summary");
-                    }}
-                  >
-                    Copy summary
-                  </Button>
-                </div>
 
                 <div
                   style={{

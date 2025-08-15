@@ -1,27 +1,39 @@
-import React from 'react';
+import React from "react";
 
 // react-bootstrap
-import { Card } from 'react-bootstrap';
+import { Card } from "react-bootstrap";
 
 // ==============================|| ORDER CARD ||============================== //
 
 const OrderCard = ({ params }) => {
-  let cardClass = ['order-card'];
+  let cardClass = ["order-card"];
   if (params.class) {
     cardClass = [...cardClass, params.class];
   }
 
-  let iconClass = ['float-start'];
-  if (params.icon) {
+  // Check if icon is a React component or CSS class string
+  const isReactIcon = React.isValidElement(params.icon);
+
+  let iconClass = ["float-start"];
+  if (params.icon && !isReactIcon) {
     iconClass = [...iconClass, params.icon];
   }
 
   return (
-    <Card className={cardClass.join(' ')}>
+    <Card className={cardClass.join(" ")}>
       <Card.Body>
         <h6 className="text-white">{params.title}</h6>
         <h2 className="text-end text-white">
-          <i className={iconClass.join(' ')} />
+          {isReactIcon ? (
+            <span
+              className="float-start"
+              style={{ marginRight: "10px", marginTop: "5px" }}
+            >
+              {params.icon}
+            </span>
+          ) : (
+            <i className={iconClass.join(" ")} />
+          )}
           <span>{params.primaryText}</span>
         </h2>
         <p className="mb-0">

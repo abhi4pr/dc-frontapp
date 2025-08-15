@@ -6,6 +6,16 @@ import { Row, Col, Card, Table, ListGroup } from "react-bootstrap";
 // third party
 import Chart from "react-apexcharts";
 
+// lucide react icons
+import {
+  Users,
+  Activity,
+  Calendar,
+  Heart,
+  UserCheck,
+  TrendingUp,
+} from "lucide-react";
+
 // project import
 import OrderCard from "../../components/Widgets/Statistic/OrderCard";
 import SocialCard from "../../components/Widgets/Statistic/SocialCard";
@@ -25,7 +35,7 @@ const DashAnalytics = () => {
             params={{
               title: "Total Patients",
               class: "bg-c-blue",
-              icon: "feather icon-shopping-cart",
+              icon: <Users size={24} color="white" />, // Users icon for patients
               primaryText: "486",
               secondaryText: "Completed Orders",
               extraText: "351",
@@ -37,7 +47,7 @@ const DashAnalytics = () => {
             params={{
               title: "New Cases",
               class: "bg-c-green",
-              icon: "feather icon-tag",
+              icon: <UserCheck size={24} color="white" />, // UserCheck for new cases
               primaryText: "1641",
               secondaryText: "This Month",
               extraText: "213",
@@ -47,9 +57,9 @@ const DashAnalytics = () => {
         <Col md={6} xl={3}>
           <OrderCard
             params={{
-              title: "Today Appointment",
+              title: "Today Cases",
               class: "bg-c-yellow",
-              icon: "feather icon-repeat",
+              icon: <Activity size={24} color="white" />, // Activity for daily cases
               primaryText: "42,562",
               secondaryText: "This Month",
               extraText: "5,032",
