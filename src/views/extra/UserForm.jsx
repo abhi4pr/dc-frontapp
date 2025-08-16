@@ -198,18 +198,11 @@ const UserForm = () => {
     if (id) data.append("user", id);
 
     try {
-      if (audioId) {
-        await api.put(`${API_URL}/audios/${audioId}`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Case updated");
-      } else {
-        await api.post(`${API_URL}/cases/add_post/`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Case submitted");
-      }
-      navigate("/app/dashboard");
+      await api.post(`${API_URL}/cases/add_post/`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Case submitted");
+      navigate("/");
     } catch (err) {
       console.error(err);
       toast.error("Submit failed");

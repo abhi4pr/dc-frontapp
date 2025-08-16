@@ -76,6 +76,11 @@ export const routes = [
   },
   {
     exact: "true",
+    path: "/auth/verify-email",
+    element: lazy(() => import("./views/auth/signup/VerifyEmail")),
+  },
+  {
+    exact: "true",
     path: "/auth/register",
     element: lazy(() => import("./views/auth/signup/Register")),
   },

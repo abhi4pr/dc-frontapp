@@ -81,22 +81,7 @@ const NavRight = () => {
             </Dropdown.Menu>
           </Dropdown>
         </ListGroup.Item>
-        <ListGroup.Item as="li" bsPrefix=" ">
-          <Dropdown>
-            <Dropdown.Toggle
-              as={Link}
-              variant="link"
-              to="#"
-              className="displayChatbox"
-              onClick={() => setListOpen(true)}
-            >
-              <i className="icon feather icon-mail" />
-              <span className="badge bg-success">
-                <span />
-              </span>
-            </Dropdown.Toggle>
-          </Dropdown>
-        </ListGroup.Item>
+
         <ListGroup.Item as="li" bsPrefix=" ">
           <Dropdown align="end" className="drp-user">
             <Dropdown.Toggle
@@ -106,7 +91,7 @@ const NavRight = () => {
               id="dropdown-basic"
             >
               <img
-                src={user?.profile_pic}
+                src={user?.profile_pic || '/1144760.png'}
                 className="img-radius wid-40"
                 alt="User Profile"
               />
@@ -114,7 +99,7 @@ const NavRight = () => {
             <Dropdown.Menu align="end" className="profile-notification">
               <div className="pro-head">
                 <img
-                  src={user?.profile_pic}
+                  src={user?.profile_pic || '/1144760.png'}
                   className="img-radius"
                   alt="User Profile"
                 />

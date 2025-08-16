@@ -60,7 +60,7 @@ const LabReports = () => {
     try {
       const raw = localStorage.getItem("lab_recent_v1");
       if (raw) setRecent(JSON.parse(raw));
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const persistRecent = (entry) => {
@@ -68,11 +68,14 @@ const LabReports = () => {
     setRecent(next);
     try {
       localStorage.setItem("lab_recent_v1", JSON.stringify(next));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // ---------- handlers preserved ----------
   const handleSubmit = async (event) => {
+    toast.success("Coming soon...");
+    return;
+
     event.preventDefault();
     setErrors({});
     if (!formData.title || formData.title.trim() === "") {
@@ -228,7 +231,7 @@ const LabReports = () => {
     setRecent(next);
     try {
       localStorage.setItem("lab_recent_v1", JSON.stringify(next));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // quick parse placeholder (client side) — demonstrates "Extract values" affordance

@@ -36,9 +36,9 @@ const DashAnalytics = () => {
               title: "Total Patients",
               class: "bg-c-blue",
               icon: <Users size={24} color="white" />, // Users icon for patients
-              primaryText: "486",
-              secondaryText: "Completed Orders",
-              extraText: "351",
+              primaryText: "xx",
+              secondaryText: "All Time",
+              extraText: "",
             }}
           />
         </Col>
@@ -48,24 +48,13 @@ const DashAnalytics = () => {
               title: "New Cases",
               class: "bg-c-green",
               icon: <UserCheck size={24} color="white" />, // UserCheck for new cases
-              primaryText: "1641",
+              primaryText: "xx",
               secondaryText: "This Month",
-              extraText: "213",
+              extraText: "",
             }}
           />
         </Col>
-        <Col md={6} xl={3}>
-          <OrderCard
-            params={{
-              title: "Today Cases",
-              class: "bg-c-yellow",
-              icon: <Activity size={24} color="white" />, // Activity for daily cases
-              primaryText: "42,562",
-              secondaryText: "This Month",
-              extraText: "5,032",
-            }}
-          />
-        </Col>
+
       </Row>
     </React.Fragment>
   );

@@ -889,22 +889,7 @@ const CaseIntakes = () => {
                   <div style={{ fontWeight: 800, color: "var(--text)" }}>
                     Symptom Timeline
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Button
-                      size="sm"
-                      className="btn-secondary-accent"
-                      onClick={() => setShowTimelineModal(true)}
-                    >
-                      <FaPlus /> Add
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline-secondary"
-                      onClick={printSnapshot}
-                    >
-                      <FaPrint /> Snapshot
-                    </Button>
-                  </div>
+
                 </div>
                 <div
                   style={{
@@ -1654,84 +1639,6 @@ const CaseIntakes = () => {
           </Form>
         </Card>
       </div>
-
-      {/* Timeline Modal */}
-      <Modal
-        show={showTimelineModal}
-        onHide={() => setShowTimelineModal(false)}
-        fullscreen="sm-down"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Add Timeline Entry</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Symptom *</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTimeline.symptom}
-                onChange={(e) =>
-                  setNewTimeline((p) => ({ ...p, symptom: e.target.value }))
-                }
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Onset *</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTimeline.onset}
-                onChange={(e) =>
-                  setNewTimeline((p) => ({ ...p, onset: e.target.value }))
-                }
-                placeholder="Date or description"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Duration</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTimeline.duration}
-                onChange={(e) =>
-                  setNewTimeline((p) => ({ ...p, duration: e.target.value }))
-                }
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Past Remedy</Form.Label>
-              <Form.Control
-                type="text"
-                value={newTimeline.pastRx}
-                onChange={(e) =>
-                  setNewTimeline((p) => ({ ...p, pastRx: e.target.value }))
-                }
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Effect / Response</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={2}
-                value={newTimeline.effect}
-                onChange={(e) =>
-                  setNewTimeline((p) => ({ ...p, effect: e.target.value }))
-                }
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="outline-secondary"
-            onClick={() => setShowTimelineModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button className="btn-secondary-accent" onClick={handleAddTimeline}>
-            <FaPlus /> Add
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Follow-up Modal */}
       <Modal
