@@ -80,6 +80,8 @@ export default function Plans() {
   const [creditsQty, setCreditsQty] = useState(10);
   const [loadingCredits, setLoadingCredits] = useState(false);
   const [selectedPlanForConfirm, setSelectedPlanForConfirm] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [txn, setTxn] = useState(null);
 
   const plans = useMemo(
     () => [
@@ -102,47 +104,24 @@ export default function Plans() {
   };
 
   const confirmAndPay = async () => {
-    const plan = selectedPlanForConfirm;
-    if (!plan) return;
-    const amount = getAmount(plan);
-    setLoadingPlan(plan.id);
-
     try {
-      const payload = {
-        amount,
-        currency: "INR",
-        planId: plan.id,
-        planTitle: plan.title,
-        frequency,
-      };
-
-      const response = await api.post(`${API_URL}/create_payment`, payload, {
-        timeout: 15000,
+      setLoading(true);
+      const r = await fetch(`${API_URL}/payments/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 499, userId: "user_123" }),
       });
-
-      if (response?.data?.checkoutPageUrl) {
-        try {
-          window.dataLayer = window.dataLayer || [];
-          window.dataLayer.push({
-            event: "initiate_checkout",
-            plan: plan.id,
-            amount,
-          });
-        } catch (e) {}
-        window.open(response.data.checkoutPageUrl, "_blank");
-        window.location.href = response.data.checkoutPageUrl;
-      } else {
-        throw new Error("No checkout URL returned from server");
-      }
-    } catch (error) {
-      console.error("Payment initiation error:", error);
-      toast.error(
-        "Unable to start payment. Please try again or contact support."
-      );
+      const data = await r.json();
+      if (!data.ok) throw new Error(data.error || "initiate failed");
+      setTxn(data.merchantTransactionId);
+      // Redirect to PhonePe checkout
+      window.location.href = data.redirectUrl;
+    } catch (e) {
+      alert(e.message);
     } finally {
-      setLoadingPlan(null);
-      setSelectedPlanForConfirm(null);
+      setLoading(false);
     }
+
   };
 
   const handleContactSales = () => {
