@@ -73,9 +73,6 @@ const LabReports = () => {
 
   // ---------- handlers preserved ----------
   const handleSubmit = async (event) => {
-    toast.success("Coming soon...");
-    return;
-
     event.preventDefault();
     setErrors({});
     if (!formData.title || formData.title.trim() === "") {

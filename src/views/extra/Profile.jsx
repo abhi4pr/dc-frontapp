@@ -148,6 +148,7 @@ const Profile = () => {
       setErrors(localErrors);
       if (Object.keys(localErrors).length) {
         setLoading(false);
+        toast.error("Name, qualification, license number and phone is required");
         return;
       }
 
@@ -258,9 +259,9 @@ const Profile = () => {
   const splitComma = (s) =>
     s
       ? s
-          .split(",")
-          .map((x) => x.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean)
       : [];
 
   return (
@@ -371,7 +372,7 @@ const Profile = () => {
 
             <div className="usage-section" aria-hidden="false">
               <div className="usage-row">
-                <div>Usage</div>
+                <div>Remaining</div>
                 <div style={{ fontWeight: 700 }}>
                   {hitCount} / {hitLimit || "—"}
                 </div>
@@ -426,7 +427,7 @@ const Profile = () => {
               </div>
             </div>
 
-            <Form onSubmit={handleSubmit} aria-label="Profile update form">
+            <form onSubmit={handleSubmit} aria-label="Profile update form">
               <div className="form-grid">
                 {/* Profile Picture */}
                 <div className="row">
@@ -510,9 +511,7 @@ const Profile = () => {
                 {/* Years of experience + License */}
                 <div className="row">
                   <label className="field-label">Years Experience:</label>
-                  <div
-                    style={{ display: "flex", gap: 12, alignItems: "center" }}
-                  >
+                  <div className="control">
                     <Form.Control
                       type="number"
                       placeholder="Years"
@@ -523,17 +522,21 @@ const Profile = () => {
                       aria-label="Years of experience"
                       style={{ minWidth: 140 }}
                     />
-                    <div style={{ flex: 1 }}>
-                      <Form.Control
-                        type="text"
-                        placeholder="License number"
-                        name="license_number"
-                        value={formData.license_number}
-                        onChange={handleChange}
-                        className="input"
-                        aria-label="License number"
-                      />
-                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <label className="field-label">License number:</label>
+                  <div className="control">
+                    <Form.Control
+                      type="text"
+                      placeholder="License number"
+                      name="license_number"
+                      value={formData.license_number}
+                      onChange={handleChange}
+                      className="input"
+                      aria-label="License number"
+                    />
                   </div>
                 </div>
 
@@ -745,7 +748,7 @@ const Profile = () => {
 
                 {/* Hit counts (disabled) */}
                 <div className="row">
-                  <label className="field-label">Hit Counts:</label>
+                  <label className="field-label">Remaining Hit Counts:</label>
                   <div className="control">
                     <Form.Control
                       type="number"
@@ -792,7 +795,7 @@ const Profile = () => {
                     type="submit"
                     className="btn-primary"
                     disabled={loading}
-                    aria-busy={loading}
+                  // aria-busy={loading}
                   >
                     {loading ? "Submitting..." : "Submit"}
                   </button>
@@ -812,31 +815,12 @@ const Profile = () => {
                   </button>
                 </div>
 
-                <div className="audit" role="region" aria-label="Audit log">
-                  {auditLog.length === 0 ? (
-                    <div className="audit-item">No recent activity.</div>
-                  ) : (
-                    auditLog.map((a) => (
-                      <div key={a.id} className="audit-item">
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                          {a.action}
-                        </div>
-                        <div
-                          style={{ fontSize: 12, color: "var(--muted-dark)" }}
-                        >
-                          {new Date(a.ts).toLocaleString()} • {a.actor}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
                 <div className="helper">
                   Changes are encrypted in transit and recorded in your audit
                   log. Use MFA for stronger account protection.
                 </div>
               </div>
-            </Form>
+            </form>
           </section>
         </div>
       </div>

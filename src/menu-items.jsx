@@ -93,8 +93,8 @@ const menuItems = {
         //   icon: "feather icon-message-circle",
         // },
         {
-          id: "qrgenerator",
-          title: "QR Generator",
+          id: "linkgenerator",
+          title: "Link Generator",
           type: "item",
           url: "/qr-generator",
           classes: "nav-item",

@@ -18,198 +18,10 @@ import {
   BsCheckCircle,
   BsInfoCircle,
 } from "react-icons/bs";
-
-// Mock API and context for demo
-const mockApi = {
-  post: async (url, data) => {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    return {
-      data: {
-        data: {
-          doctorA: {
-            name: data.dr1,
-            recommendations: [
-              {
-                remedy: "Arsenicum Album",
-                score: 92,
-                keynotes: ["Anxiety", "Restlessness", "Burning pains"],
-                matchedRubrics: [
-                  {
-                    rubric: "Mind; Anxiety",
-                    weight: 3,
-                    book: "Kent's Repertory",
-                  },
-                  {
-                    rubric: "Stomach; Burning",
-                    weight: 2,
-                    book: "Boericke MM",
-                  },
-                ],
-                sources: [
-                  {
-                    title: "Kent's Materia Medica",
-                    excerpt: "Great restlessness and anxiety...",
-                  },
-                ],
-              },
-              {
-                remedy: "Nux Vomica",
-                score: 87,
-                keynotes: [
-                  "Irritability",
-                  "Digestive issues",
-                  "Type A personality",
-                ],
-                matchedRubrics: [
-                  {
-                    rubric: "Mind; Irritability",
-                    weight: 3,
-                    book: "Kent's Repertory",
-                  },
-                ],
-              },
-            ],
-          },
-          doctorB: {
-            name: data.dr2,
-            recommendations: [
-              {
-                remedy: "Arsenicum Album",
-                score: 89,
-                keynotes: [
-                  "Fear of death",
-                  "Perfectionist",
-                  "Restless at night",
-                ],
-              },
-              {
-                remedy: "Phosphorus",
-                score: 84,
-                keynotes: ["Sympathy", "Hemorrhages", "Tall slim build"],
-              },
-            ],
-          },
-          intersection: [
-            {
-              remedy: "Arsenicum Album",
-              scoreA: 92,
-              scoreB: 89,
-              reasons: ["Anxiety", "Restlessness"],
-            },
-          ],
-        },
-        meta: {
-          model: "GPT-4 Homeopathy",
-          algorithmVersion: "v2.1",
-          generatedAt: new Date().toISOString(),
-        },
-      },
-    };
-  },
-};
+import axios from 'axios';
 
 const mockUserContext = {
   user: { _id: "demo_user", hit_count: 150 },
-};
-
-// Expert Systems Configuration
-const EXPERT_SYSTEMS = {
-  kent: {
-    name: "Kent's Philosophy & Method",
-    description: "Hierarchical symptom analysis with mental symptoms priority",
-    color: "#4f46e5",
-    icon: BsTree,
-    principles: [
-      "Mental symptoms take precedence",
-      "Hierarchical symptom evaluation",
-      "Constitutional approach",
-      "Totality of symptoms",
-    ],
-  },
-  boericke: {
-    name: "Boericke's Clinical Approach",
-    description: "Pathological correlations with remedy selection",
-    color: "#059669",
-    icon: BsActivity,
-    principles: [
-      "Clinical pathological correlation",
-      "Therapeutic indication based",
-      "Disease-remedy relationship",
-      "Physiological remedy action",
-    ],
-  },
-  boenninghausen: {
-    name: "Boenninghausen's Method",
-    description: "Characteristic symptoms and totality concepts",
-    color: "#dc2626",
-    icon: BsGrid3X3,
-    principles: [
-      "Characteristic symptoms focus",
-      "Complete symptom totality",
-      "Modalities importance",
-      "Concomitant symptoms",
-    ],
-  },
-  hahnemann: {
-    name: "Hahnemann's Organon Principles",
-    description: "Individualization and similimum selection",
-    color: "#7c2d12",
-    icon: BsBook,
-    principles: [
-      "Similia similibus curentur",
-      "Individual case taking",
-      "Minimum dose principle",
-      "Single remedy approach",
-    ],
-  },
-  vijayakar: {
-    name: "Dr. Prafull Vijayakar's Method",
-    description: "7 levels of suppression and constitutional analysis",
-    color: "#be123c",
-    icon: BsBarChart,
-    principles: [
-      "7 levels of suppression",
-      "Genetic constitution analysis",
-      "Acute prescribing method",
-      "Systematic case analysis",
-    ],
-  },
-  sankaran: {
-    name: "Sankaran's Systematic Method",
-    description: "Kingdom-based classification and vital sensation",
-    color: "#9333ea",
-    icon: BsEye,
-    principles: [
-      "Kingdom classification",
-      "Vital sensation concept",
-      "Other song method",
-      "Source-based prescribing",
-    ],
-  },
-  scholten: {
-    name: "Scholten's Element Theory",
-    description: "Periodic table approach to homeopathic elements",
-    color: "#0891b2",
-    icon: BsGrid3X3,
-    principles: [
-      "Periodic table correlation",
-      "Element group characteristics",
-      "Stage and series analysis",
-      "Systematic element study",
-    ],
-  },
-  radar: {
-    name: "Radar-Style Analysis",
-    description: "Commercial software logic with statistical analysis",
-    color: "#ea580c",
-    icon: BsShield,
-    principles: [
-      "Statistical remedy ranking",
-      "Weighted symptom analysis",
-      "Cross-referenced repertorization",
-      "Clinical verification database",
-    ],
-  },
 };
 
 const EXPERTS_CORPUS = [
@@ -251,7 +63,7 @@ const ExpertSystem = () => {
 
   // Expert system selection
   const [selectedExpertSystem, setSelectedExpertSystem] = useState("kent");
-  const [activeTab, setActiveTab] = useState("single");
+  const [activeTab, setActiveTab] = useState("compare");
   const [showSystemDetails, setShowSystemDetails] = useState(false);
 
   // Typeahead states
@@ -282,11 +94,30 @@ const ExpertSystem = () => {
   const [explainModalOpen, setExplainModalOpen] = useState(false);
   const [explainFor, setExplainFor] = useState(null);
 
+  const symptomsRef = useRef(null);
+
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, value, selectionStart, selectionEnd } = event.target;
+
+    // cursor position store करो
+    const cursorStart = selectionStart;
+    const cursorEnd = selectionEnd;
+
     setFormData((p) => ({ ...p, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: null }));
+
+    // अगली render cycle में cursor restore करो
+    if (name === "symptoms") {
+      requestAnimationFrame(() => {
+        if (symptomsRef.current) {
+          symptomsRef.current.selectionStart = cursorStart;
+          symptomsRef.current.selectionEnd = cursorEnd;
+          symptomsRef.current.focus();
+        }
+      });
+    }
   };
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -318,7 +149,7 @@ const ExpertSystem = () => {
     try {
       setLoading(true);
 
-      const response = await mockApi.post(
+      const response = await axios.post(
         `/ai/send_compare_data/${user?._id}`,
         { dr1: formData.dr1, dr2: formData.dr2, symptoms: formData.symptoms }
       );
@@ -391,332 +222,6 @@ const ExpertSystem = () => {
     };
   }, []);
 
-  // Expert System Card Component
-  const ExpertSystemCard = ({ systemKey, system, isSelected, onSelect }) => {
-    const IconComponent = system.icon;
-    return (
-      <div
-        className={`expert-system-card ${isSelected ? "selected" : ""}`}
-        onClick={() => onSelect(systemKey)}
-        style={{
-          background: isSelected
-            ? `linear-gradient(135deg, ${system.color}15, ${system.color}08)`
-            : "linear-gradient(135deg, #ffffff, #f8fafc)",
-          border: isSelected
-            ? `2px solid ${system.color}`
-            : "1px solid rgba(0,0,0,0.06)",
-          borderRadius: "16px",
-          padding: "20px",
-          cursor: "pointer",
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          position: "relative",
-          overflow: "hidden",
-          height: "100%",
-        }}
-      >
-        <div className="d-flex align-items-start justify-content-between mb-3">
-          <div
-            className="expert-icon"
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
-              background: `linear-gradient(135deg, ${system.color}, ${system.color}CC)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontSize: "20px",
-            }}
-          >
-            <IconComponent />
-          </div>
-          {isSelected && (
-            <BsStarFill style={{ color: system.color, fontSize: "16px" }} />
-          )}
-        </div>
-
-        <h5
-          style={{
-            fontWeight: "700",
-            fontSize: "16px",
-            color: "#1e293b",
-            marginBottom: "8px",
-            lineHeight: "1.4",
-          }}
-        >
-          {system.name}
-        </h5>
-
-        <p
-          style={{
-            fontSize: "14px",
-            color: "#64748b",
-            marginBottom: "16px",
-            lineHeight: "1.5",
-          }}
-        >
-          {system.description}
-        </p>
-
-        <div className="key-principles">
-          <div
-            style={{
-              fontSize: "12px",
-              fontWeight: "600",
-              color: "#374151",
-              marginBottom: "8px",
-            }}
-          >
-            Key Principles:
-          </div>
-          <ul
-            style={{
-              fontSize: "12px",
-              color: "#6b7280",
-              paddingLeft: "16px",
-              margin: 0,
-            }}
-          >
-            {system.principles.slice(0, 2).map((principle, idx) => (
-              <li key={idx} style={{ marginBottom: "4px" }}>
-                {principle}
-              </li>
-            ))}
-            <li style={{ color: system.color, fontWeight: "500" }}>
-              +{system.principles.length - 2} more principles
-            </li>
-          </ul>
-        </div>
-
-        {isSelected && (
-          <div
-            className="selected-indicator"
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "4px",
-              background: `linear-gradient(90deg, ${system.color}, ${system.color}66)`,
-            }}
-          />
-        )}
-      </div>
-    );
-  };
-
-  // Single Expert System Analysis
-  const SingleExpertAnalysis = () => {
-    const selectedSystem = EXPERT_SYSTEMS[selectedExpertSystem];
-    return (
-      <div className="single-expert-analysis">
-        <div
-          className="expert-header mb-4"
-          style={{
-            background: `linear-gradient(135deg, ${selectedSystem.color}15, ${selectedSystem.color}08)`,
-            border: `1px solid ${selectedSystem.color}30`,
-            borderRadius: "16px",
-            padding: "24px",
-          }}
-        >
-          <div className="d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center">
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "16px",
-                  background: `linear-gradient(135deg, ${selectedSystem.color}, ${selectedSystem.color}CC)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontSize: "24px",
-                  marginRight: "16px",
-                }}
-              >
-                <selectedSystem.icon />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, fontWeight: "700", color: "#1e293b" }}>
-                  {selectedSystem.name}
-                </h4>
-                <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-                  {selectedSystem.description}
-                </p>
-              </div>
-            </div>
-            <button
-              className="btn btn-outline-secondary btn-sm"
-              onClick={() => setShowSystemDetails(!showSystemDetails)}
-            >
-              <BsQuestionCircle className="me-2" />
-              Details
-            </button>
-          </div>
-
-          {showSystemDetails && (
-            <div
-              className="mt-4 pt-4"
-              style={{ borderTop: "1px solid rgba(0,0,0,0.1)" }}
-            >
-              <h6
-                style={{
-                  fontWeight: "600",
-                  color: "#374151",
-                  marginBottom: "12px",
-                }}
-              >
-                Core Principles & Methodology:
-              </h6>
-              <div className="row">
-                {selectedSystem.principles.map((principle, idx) => (
-                  <div key={idx} className="col-md-6 mb-2">
-                    <div className="d-flex align-items-center">
-                      <div
-                        style={{
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "50%",
-                          background: selectedSystem.color,
-                          marginRight: "8px",
-                        }}
-                      />
-                      <span style={{ fontSize: "13px", color: "#4b5563" }}>
-                        {principle}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div
-            className="case-input-section"
-            style={{
-              background: "linear-gradient(135deg, #ffffff, #f8fafc)",
-              border: "1px solid rgba(0,0,0,0.06)",
-              borderRadius: "16px",
-              padding: "24px",
-            }}
-          >
-            <h5
-              style={{
-                fontWeight: "700",
-                color: "#1e293b",
-                marginBottom: "20px",
-              }}
-            >
-              Enter Case Details for Analysis
-            </h5>
-
-            <div className="mb-4">
-              <label
-                className="form-label"
-                style={{ fontWeight: "600", color: "#374151" }}
-              >
-                Patient Symptoms, Modalities & Generals
-              </label>
-              <textarea
-                className="form-control"
-                rows={6}
-                name="symptoms"
-                value={formData.symptoms}
-                onChange={handleChange}
-                placeholder="Describe the patient's symptoms, modalities, and generals for analysis by this expert system..."
-                style={{
-                  border: "1px solid rgba(0,0,0,0.1)",
-                  borderRadius: "12px",
-                  fontSize: "14px",
-                  resize: "vertical",
-                }}
-              />
-              {errors.symptoms && (
-                <div
-                  style={{
-                    color: "#dc2626",
-                    fontSize: "13px",
-                    marginTop: "6px",
-                  }}
-                >
-                  {errors.symptoms}
-                </div>
-              )}
-            </div>
-
-            <div className="row mb-4">
-              <div className="col-md-6">
-                <label
-                  className="form-label"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  Analysis Depth
-                </label>
-                <select className="form-select" style={{ borderRadius: "8px" }}>
-                  <option>Quick Analysis</option>
-                  <option>Detailed Analysis</option>
-                  <option>Comprehensive Analysis</option>
-                </select>
-              </div>
-              <div className="col-md-6">
-                <label
-                  className="form-label"
-                  style={{ fontWeight: "600", color: "#374151" }}
-                >
-                  Case Type
-                </label>
-                <select className="form-select" style={{ borderRadius: "8px" }}>
-                  <option>Acute Case</option>
-                  <option>Chronic Case</option>
-                  <option>Constitutional</option>
-                  <option>Follow-up</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="d-flex justify-content-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn"
-                style={{
-                  background: `linear-gradient(135deg, ${selectedSystem.color}, ${selectedSystem.color}CC)`,
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "12px 32px",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  color: "white",
-                }}
-              >
-                {loading ? (
-                  <>
-                    <div
-                      className="spinner-border spinner-border-sm me-2"
-                      role="status"
-                    >
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                    Analyzing with {selectedSystem.name}...
-                  </>
-                ) : (
-                  <>
-                    Analyze with {selectedSystem.name}
-                    <BsArrowRight className="ms-2" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    );
-  };
-
   // Comparison Analysis
   const ComparisonAnalysis = () => (
     <form onSubmit={handleSubmit}>
@@ -740,63 +245,27 @@ const ExpertSystem = () => {
               ref={suggestionsRef1}
               style={{ position: "relative" }}
             >
-              <input
+              <select
                 ref={dr1InputRef}
-                className="form-control"
+                className="form-select"
                 name="dr1"
                 value={formData.dr1}
                 onChange={handleChange}
-                placeholder="Enter expert name (e.g., Kent)"
-                autoComplete="off"
                 style={{
                   borderRadius: "12px",
                   border: "1px solid rgba(0,0,0,0.1)",
                   padding: "12px 16px",
                   fontSize: "14px",
                 }}
-              />
-              {showSuggestions1 && suggestions1.length > 0 && (
-                <div
-                  className="suggestions-dropdown"
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    background: "white",
-                    border: "1px solid rgba(0,0,0,0.1)",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-                    zIndex: 1000,
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                  }}
-                >
-                  {suggestions1.map((suggestion, idx) => (
-                    <div
-                      key={suggestion}
-                      className={`suggestion-item ${idx === activeIdx1 ? "active" : ""}`}
-                      style={{
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        borderBottom:
-                          idx < suggestions1.length - 1
-                            ? "1px solid rgba(0,0,0,0.05)"
-                            : "none",
-                      }}
-                      onClick={() => {
-                        handleChange({
-                          target: { name: "dr1", value: suggestion },
-                        });
-                        setShowSuggestions1(false);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              )}
+              >
+                <option value="">-- Select First Expert/Doctor --</option>
+                {EXPERTS_CORPUS.map((expert) => (
+                  <option key={expert} value={expert}>
+                    {expert}
+                  </option>
+                ))}
+              </select>
+
             </div>
             {errors.dr1 && (
               <div
@@ -838,63 +307,33 @@ const ExpertSystem = () => {
               ref={suggestionsRef2}
               style={{ position: "relative" }}
             >
-              <input
+              <select
                 ref={dr2InputRef}
-                className="form-control"
+                className="form-select"
                 name="dr2"
                 value={formData.dr2}
                 onChange={handleChange}
-                placeholder="Enter expert name (e.g., Hahnemann)"
-                autoComplete="off"
                 style={{
                   borderRadius: "12px",
                   border: "1px solid rgba(0,0,0,0.1)",
                   padding: "12px 16px",
                   fontSize: "14px",
                 }}
-              />
-              {showSuggestions2 && suggestions2.length > 0 && (
-                <div
-                  className="suggestions-dropdown"
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    background: "white",
-                    border: "1px solid rgba(0,0,0,0.1)",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
-                    zIndex: 1000,
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                  }}
-                >
-                  {suggestions2.map((suggestion, idx) => (
-                    <div
-                      key={suggestion}
-                      className={`suggestion-item ${idx === activeIdx2 ? "active" : ""}`}
-                      style={{
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        borderBottom:
-                          idx < suggestions2.length - 1
-                            ? "1px solid rgba(0,0,0,0.05)"
-                            : "none",
-                      }}
-                      onClick={() => {
-                        handleChange({
-                          target: { name: "dr2", value: suggestion },
-                        });
-                        setShowSuggestions2(false);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
+              >
+                <option value="">-- Select Second Expert/Doctor --</option>
+                {EXPERTS_CORPUS.map((expert) => (
+                  <option key={expert} value={expert}>
+                    {expert}
+                  </option>
+                ))}
+              </select>
+              {errors.dr2 && (
+                <div style={{ color: "#dc2626", fontSize: "13px", marginTop: "6px" }}>
+                  {errors.dr2}
                 </div>
               )}
+
+
             </div>
             {errors.dr2 && (
               <div
@@ -914,12 +353,13 @@ const ExpertSystem = () => {
             Patient Symptoms
           </label>
           <textarea
+            ref={symptomsRef}
             className="form-control"
             rows={5}
             name="symptoms"
             value={formData.symptoms}
             onChange={handleChange}
-            placeholder="Describe the patient's symptoms, modalities, and generals for comparison..."
+            placeholder="Describe the patient's symptoms..."
             style={{
               borderRadius: "12px",
               border: "1px solid rgba(0,0,0,0.1)",
@@ -927,6 +367,9 @@ const ExpertSystem = () => {
               resize: "vertical",
             }}
           />
+
+
+
           {errors.symptoms && (
             <div
               style={{ color: "#dc2626", fontSize: "13px", marginTop: "6px" }}
@@ -1358,22 +801,7 @@ const ExpertSystem = () => {
             padding: "8px",
           }}
         >
-          <button
-            className={`nav-link ${activeTab === "single" ? "active" : ""}`}
-            onClick={() => setActiveTab("single")}
-            style={{
-              background: activeTab === "single" ? "white" : "transparent",
-              border: "none",
-              borderRadius: "12px",
-              padding: "12px 24px",
-              fontWeight: "600",
-              color: activeTab === "single" ? "#1e293b" : "#64748b",
-              transition: "all 0.2s",
-            }}
-          >
-            <BsLightbulb className="me-2" />
-            Single Expert Analysis
-          </button>
+
           <button
             className={`nav-link ${activeTab === "compare" ? "active" : ""}`}
             onClick={() => setActiveTab("compare")}
@@ -1406,16 +834,7 @@ const ExpertSystem = () => {
             Choose Your Expert System
           </h4>
           <div className="row g-3">
-            {Object.entries(EXPERT_SYSTEMS).map(([key, system]) => (
-              <div key={key} className="col-md-6 col-lg-4">
-                <ExpertSystemCard
-                  systemKey={key}
-                  system={system}
-                  isSelected={selectedExpertSystem === key}
-                  onSelect={setSelectedExpertSystem}
-                />
-              </div>
-            ))}
+
           </div>
         </div>
       )}
@@ -1423,7 +842,7 @@ const ExpertSystem = () => {
       {/* Analysis Form */}
       <div className="analysis-form-section mb-5">
         {activeTab === "single" ? (
-          <SingleExpertAnalysis />
+          <></>
         ) : (
           <ComparisonAnalysis />
         )}

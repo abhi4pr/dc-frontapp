@@ -74,19 +74,6 @@ const staticData = [
     status: "Active",
     lastPrescription: "Belladonna 200",
   },
-  {
-    id: 3,
-    title: "Case 3: gagan flick",
-    description: "Fever and fatigue, possibly viral infection.",
-    category: "General Medicine",
-    patient: { name: "Gagan Flick", age: 23, sex: "M", id: "P-1003" },
-    priority: "Low",
-    assignedTo: { name: "Dr. Singh", initials: "DS" },
-    attachments: 1,
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-    status: "Follow-up",
-    lastPrescription: "Bryonia 30",
-  },
 ];
 
 /* ---------- Styles: CSS block for animations + small classes ---------- */

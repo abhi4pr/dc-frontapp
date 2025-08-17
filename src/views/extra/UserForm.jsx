@@ -20,7 +20,7 @@ import {
   FaFileMedical,
   FaInfoCircle,
 } from "react-icons/fa";
-
+import { FaGlobe } from "react-icons/fa";
 /*
   Upgraded patient-facing UserForm.jsx
   - Modern glassmorphism + soothing palette + large touch targets
@@ -111,6 +111,34 @@ const UserForm = () => {
     therachallenge: "",
     user: "",
   });
+
+  useEffect(() => {
+    const addGoogleTranslate = () => {
+      if (!document.querySelector("#google-translate-script")) {
+        const script = document.createElement("script");
+        script.id = "google-translate-script";
+        script.type = "text/javascript";
+        script.async = true;
+        script.src =
+          "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+        document.body.appendChild(script);
+      }
+
+      window.googleTranslateElementInit = () => {
+        new window.google.translate.TranslateElement(
+          {
+            pageLanguage: "en",
+            includedLanguages:
+              "en,hi,ta,te,bn,ml,mr,gu,pa,kn,ur,es,fr,de,zh-CN,ja,ru,ar", // customize language list
+            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+          },
+          "google_translate_element"
+        );
+      };
+    };
+    addGoogleTranslate();
+  }, []);
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -255,6 +283,32 @@ const UserForm = () => {
         .muted { color:#0b556b; opacity:0.78; font-size:13px; }
         @media (max-width:720px){ .hero { flex-direction:row; } .logo{ width:56px; height:56px; } }
       `}</style>
+
+      <div style={{ textAlign: "right" }}>
+        <div className="muted">Patient form</div>
+        {/* Google Translate Button */}
+        <div id="google_translate_element" style={{ marginTop: 8 }}></div>
+        <Button
+          variant="light"
+          size="sm"
+          style={{
+            borderRadius: "8px",
+            border: "1px solid #ddd",
+            marginTop: "6px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+          onClick={() => {
+            const el = document.querySelector("#google_translate_element select");
+            if (el) el.focus(); // opens language dropdown
+          }}
+        >
+
+        </Button>
+      </div>
+
 
       <div className="wrap">
         <div className="card-shell">

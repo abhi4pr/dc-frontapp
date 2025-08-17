@@ -114,7 +114,7 @@ async function trimCacheIfNeeded() {
       const toRemove = all.slice(0, all.length - CACHE_MAX);
       toRemove.forEach((r) => store.delete(r.key));
     };
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function clearExpiredEntries() {
@@ -133,7 +133,7 @@ async function clearExpiredEntries() {
       }
       cursor.continue();
     };
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /* ------------------ Utilities ------------------ */
@@ -198,9 +198,9 @@ function computeConfidenceComponents(entry, query = "") {
       ? Array.isArray(entry.summary)
         ? entry.summary
         : String(entry.summary)
-            .split(".")
-            .map((s) => s.trim())
-            .filter(Boolean)
+          .split(".")
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
 
   const sourceCountRaw = Math.min(10, sources.length);
@@ -268,9 +268,9 @@ function computeConfidenceComponents(entry, query = "") {
   // combine with weights (tunable)
   const score = Math.round(
     0.4 * matchScore + // how well it matches the doctor's search
-      0.25 * sourceCount + // how many sources
-      0.2 * provingCount + // how many provings
-      0.15 * concordance // how much agreement across sources
+    0.25 * sourceCount + // how many sources
+    0.2 * provingCount + // how many provings
+    0.15 * concordance // how much agreement across sources
   );
 
   return {
@@ -514,7 +514,7 @@ const MeteriaMedica = () => {
         setCacheBadge(true);
         setData(cached);
         // background refresh
-        refreshFromServer(key).catch(() => {});
+        refreshFromServer(key).catch(() => { });
         setTimeout(
           () =>
             resultsRef.current?.scrollIntoView({
@@ -532,7 +532,7 @@ const MeteriaMedica = () => {
     // abort previous
     try {
       controllerRef.current?.abort();
-    } catch (e) {}
+    } catch (e) { }
     controllerRef.current = new AbortController();
     const reqId = ++latestReqId.current;
 
@@ -576,7 +576,7 @@ const MeteriaMedica = () => {
       console.error("Materia Medica search error:", err);
       setInlineError(
         err?.response?.data?.message ||
-          "An error occurred while fetching medicine detail."
+        "An error occurred while fetching medicine detail."
       );
       if (err.response && err.response.data) {
         toast.error(err.response.data.message || "An error occurred.");
@@ -1199,7 +1199,7 @@ const MeteriaMedica = () => {
                   navigator.clipboard
                     ?.writeText(remedy)
                     .then(() => toast.success("Copied"))
-                    .catch(() => {})
+                    .catch(() => { })
                 }
               >
                 Copy name
@@ -1350,7 +1350,7 @@ const MeteriaMedica = () => {
             <Button
               size="sm"
               variant="link"
-              onClick={() => handleSubmit({ preventDefault: () => {} })}
+              onClick={() => handleSubmit({ preventDefault: () => { } })}
             >
               Retry
             </Button>
@@ -1383,27 +1383,7 @@ const MeteriaMedica = () => {
                     aria-controls="mm-suggestions"
                     aria-expanded={showSuggestions}
                   />
-                  <div className="right-actions" aria-hidden>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: "#375e84",
-                        paddingRight: 6,
-                      }}
-                    >
-                      Author
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onClick={() => {
-                        setSelectedAuthors([]);
-                        toast.info("Authors cleared");
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  </div>
+
 
                   {showSuggestions && suggestions.length > 0 && (
                     <div
@@ -1863,7 +1843,7 @@ const MeteriaMedica = () => {
                                     (typeof compareList[i] === "string"
                                       ? compareList[i]
                                       : compareList[i].remedy ||
-                                        compareList[i].name)) ||
+                                      compareList[i].name)) ||
                                     `Item ${i + 1}`}
                                 </div>
                                 <div

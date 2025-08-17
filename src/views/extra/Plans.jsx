@@ -39,11 +39,25 @@ const PLAN_DEFINITIONS = {
     ],
     cta: "Start Basic",
   },
+  advance: {
+    id: "advance",
+    title: "Advance",
+    monthly: 5000,
+    annual: 50000,
+    bullets: [
+      "Offline-first repertory & case recording",
+      "Cross-Materia Medica (read-only)",
+      "Patient history vault & follow-ups",
+      "Voice dictation (advance)",
+      "20 free AI analyses (launch promo)",
+    ],
+    cta: "Start Advance",
+  },
   pro: {
     id: "pro",
     title: "Pro",
-    monthly: 3500,
-    annual: 35000,
+    monthly: 10000,
+    annual: 100000,
     bullets: [
       "Unlimited AI-augmented analysis",
       "Case synthesis assistant & differential matrix",
@@ -52,19 +66,6 @@ const PLAN_DEFINITIONS = {
       "Voice dictation (priority parsing)",
     ],
     cta: "Start Pro",
-  },
-  enterprise: {
-    id: "enterprise",
-    title: "Enterprise",
-    monthly: null,
-    annual: null,
-    bullets: [
-      "Multi-seat management & RBAC",
-      "EMR / PMS integrations & SSO",
-      "Dedicated onboarding, SLA & account manager",
-      "Custom analytics & on-prem hybrid options",
-    ],
-    cta: "Contact Sales",
   },
 };
 
@@ -86,8 +87,8 @@ export default function Plans() {
   const plans = useMemo(
     () => [
       PLAN_DEFINITIONS.basic,
+      PLAN_DEFINITIONS.advance,
       PLAN_DEFINITIONS.pro,
-      PLAN_DEFINITIONS.enterprise,
     ],
     []
   );

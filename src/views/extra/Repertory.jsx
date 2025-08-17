@@ -77,8 +77,8 @@ async function dbSet(key, value, ttl = CACHE_TTL) {
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
     store.put({ key, value, ts: Date.now(), ttl });
-    tx.oncomplete = () => trimCache().catch(() => {});
-  } catch (e) {}
+    tx.oncomplete = () => trimCache().catch(() => { });
+  } catch (e) { }
 }
 async function trimCache() {
   try {
@@ -93,7 +93,7 @@ async function trimCache() {
       const remove = list.slice(0, list.length - CACHE_MAX);
       remove.forEach((r) => store.delete(r.key));
     };
-  } catch (e) {}
+  } catch (e) { }
 }
 async function clearExpired() {
   try {
@@ -109,7 +109,7 @@ async function clearExpired() {
       if (v && v.ttl && now - v.ts > v.ttl) c.delete();
       c.continue();
     };
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /* ----------------------------- small utilities ----------------------------- */
@@ -117,9 +117,9 @@ const esc = (s) =>
   s === null || s === undefined
     ? ""
     : String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function highlight(text = "", tokens = []) {
   if (!text) return esc(text);
@@ -132,7 +132,7 @@ function highlight(text = "", tokens = []) {
     try {
       const re = new RegExp(`(${escapeRegExp(t)})`, "gi");
       out = out.replace(re, "<mark>$1</mark>");
-    } catch (e) {}
+    } catch (e) { }
   });
   return out;
 }
@@ -175,7 +175,7 @@ function computeScoreComponents(
             );
         });
       });
-    } catch (e) {}
+    } catch (e) { }
   }
   const sourceTrust = Math.round(baseTrust);
 
@@ -213,9 +213,9 @@ function computeScoreComponents(
 
   const final = Math.round(
     0.34 * degreeMatch +
-      0.28 * sourceTrust +
-      0.22 * rubricWeight +
-      0.16 * severityMatch
+    0.28 * sourceTrust +
+    0.22 * rubricWeight +
+    0.16 * severityMatch
   );
   return {
     score: Math.min(99, Math.max(0, final)),
@@ -268,9 +268,9 @@ function keynoteSet(item) {
       ? Array.isArray(item.summary)
         ? item.summary
         : String(item.summary)
-            .split(".")
-            .map((s) => s.trim())
-            .filter(Boolean)
+          .split(".")
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
   return new Set(
     keys.map((k) => String(k).trim().toLowerCase()).filter(Boolean)
@@ -451,7 +451,7 @@ const Repertory = () => {
 
   // clear expired cache
   useEffect(() => {
-    clearExpired().catch(() => {});
+    clearExpired().catch(() => { });
   }, []);
 
   /* ----------------------------- suggestion fetch ----------------------------- */
@@ -462,7 +462,7 @@ const Repertory = () => {
       );
       if (res && res.data && Array.isArray(res.data.suggestions))
         return res.data.suggestions;
-    } catch (e) {}
+    } catch (e) { }
     const corp = [
       "anxiety",
       "headache",
@@ -556,7 +556,7 @@ const Repertory = () => {
       if (cached) {
         setCacheBadge(true);
         setData(cached);
-        refreshBackground(cacheKey).catch(() => {});
+        refreshBackground(cacheKey).catch(() => { });
         setTimeout(
           () =>
             resultsRef.current?.scrollIntoView({
@@ -567,11 +567,11 @@ const Repertory = () => {
         );
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
 
     try {
       controllerRef.current?.abort();
-    } catch (e) {}
+    } catch (e) { }
     controllerRef.current = new AbortController();
     const reqId = ++latestReq.current;
 
@@ -637,7 +637,7 @@ const Repertory = () => {
           response_hash: resp?.data?.meta?.response_hash || null,
           timestamp: Date.now(),
         });
-      } catch (e) {}
+      } catch (e) { }
       setTimeout(
         () =>
           resultsRef.current?.scrollIntoView({
@@ -651,7 +651,7 @@ const Repertory = () => {
       console.error("Repertory search error:", err);
       setInlineError(
         err?.response?.data?.message ||
-          "An unexpected error occurred while searching. Please retry."
+        "An unexpected error occurred while searching. Please retry."
       );
       if (err.response && err.response.data)
         toast.error(err.response.data.message || "An error occurred.");
@@ -699,7 +699,7 @@ const Repertory = () => {
       }
       setData(payload);
       await dbSet(cacheKey, payload);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   /* ----------------------- author & repertory helpers ----------------------- */
@@ -948,7 +948,7 @@ const Repertory = () => {
                     matched.map((r, i) => {
                       const prov =
                         Array.isArray(item.matched_sources) &&
-                        item.matched_sources[i]
+                          item.matched_sources[i]
                           ? item.matched_sources[i]
                           : null;
                       return (
@@ -1048,8 +1048,8 @@ const Repertory = () => {
               onClick={() => {
                 setMmContent(
                   item.materia_medica ||
-                    item.mm_excerpt ||
-                    `Materia medica for ${n} not available.`
+                  item.mm_excerpt ||
+                  `Materia medica for ${n} not available.`
                 );
                 setMmOpen(true);
               }}
@@ -1242,7 +1242,7 @@ const Repertory = () => {
             <Button
               size="sm"
               variant="link"
-              onClick={() => handleSubmit({ preventDefault: () => {} })}
+              onClick={() => handleSubmit({ preventDefault: () => { } })}
             >
               Retry
             </Button>
