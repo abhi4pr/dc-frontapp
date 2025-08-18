@@ -185,7 +185,7 @@ const CaseIntakes = () => {
 
   /* ===== Load user id to payload ===== */
   useEffect(() => {
-    if (user?.id) setFormData((p) => ({ ...p, user: user.id }));
+    if (user?._id) setFormData((p) => ({ ...p, user: user._id }));
   }, [user]);
 
   /* ===== Autosave & restore (no payload changes) ===== */
@@ -338,23 +338,17 @@ const CaseIntakes = () => {
       } else if (v !== "" && v !== null && v !== undefined) data.append(k, v);
     }
     if (formData.image) data.append("image", formData.image);
-    if (user?.id) data.append("user", user.id);
+    if (user?._id) data.append("user", user._id);
     try {
-      if (audioId) {
-        await api.put(`${API_URL}/cases/${audioId}`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Case updated");
-      } else {
-        await api.post(`${API_URL}/cases`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        toast.success("Case saved");
-        localStorage.removeItem("caseIntakesDraft");
-        setFormData(initialForm);
-        setImagePreview(null);
-        setStep(1);
-      }
+      await api.post(`${API_URL}/cases/add_post`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Case saved");
+      localStorage.removeItem("caseIntakesDraft");
+      setFormData(initialForm);
+      setImagePreview(null);
+      setStep(1);
+
     } catch (err) {
       console.error(err);
       toast.error("Save failed");
@@ -1463,34 +1457,7 @@ const CaseIntakes = () => {
                   Tip: Attach labs or imaging and summarise the “totality” for
                   quick repertorization.
                 </div>
-                <Form.Group as={Row} className="mb-3">
-                  <Form.Label column sm={3} style={{ textAlign: "right" }}>
-                    Attach Record
-                  </Form.Label>
-                  <Col sm={9}>
-                    <Form.Control
-                      type="file"
-                      name="image"
-                      accept="image/*,application/pdf"
-                      onChange={handleImageChange}
-                    />
-                    {imagePreview && (
-                      <div style={{ marginTop: 8 }}>
-                        <img
-                          src={imagePreview}
-                          alt="preview"
-                          style={{
-                            width: 120,
-                            height: 120,
-                            objectFit: "cover",
-                            borderRadius: 8,
-                            border: "1px solid var(--border)",
-                          }}
-                        />
-                      </div>
-                    )}
-                  </Col>
-                </Form.Group>
+
                 <Form.Group className="mb-3">
                   <Form.Label>Pathology / Correlation</Form.Label>
                   <Form.Control
@@ -1761,8 +1728,9 @@ const CaseIntakes = () => {
           </Button>
         ) : (
           <Button
+            type="submit"
             className="btn-primary-accent"
-            onClick={handleSubmit}
+            // onClick={handleSubmit}
             disabled={loading || (user && user.hit_count === 0)}
           >
             {loading ? "Saving..." : "Submit Case"}
