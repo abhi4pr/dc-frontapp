@@ -46,7 +46,7 @@ const STORAGE_FAVS_KEY = "remedy_favs_v2";
 const RemedySuggestion = () => {
   // preserved state
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ disease: "" });
+  const [formData, setFormData] = useState({ symptoms: "", userId: '' });
   const [errors, setErrors] = useState({});
   const [data, setData] = useState("");
 
@@ -86,46 +86,40 @@ const RemedySuggestion = () => {
     }
   };
 
-  const persistFav = (q, resp) => {
-    const entry = { q, resp, at: new Date().toISOString() };
-    const next = [entry, ...favs].slice(0, 30);
-    setFavs(next);
-    try {
-      localStorage.setItem(STORAGE_FAVS_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.error("Failed to persist favs:", e);
-    }
-  };
-
   // preserve handler name
   const handleSubmit = async (event) => {
     event?.preventDefault?.();
     setErrors({});
 
-    if (mode === "text" && (!formData.disease || !formData.disease.trim())) {
-      setErrors({ disease: "Please enter a query" });
+    if (mode === "text" && (!formData.symptoms || !formData.symptoms.trim())) {
+      setErrors({ symptoms: "Please enter a query" });
       return;
     }
 
     setLoading(true);
     const started = Date.now();
     try {
-      const endpoint = `${API_URL}/ai/send_search_remedy/${user?._id}`;
+      const endpoint = `${API_URL}/ai/send_medicine/`;
 
       if (mode === "image" && imageFile) {
         const fd = new FormData();
-        fd.append("disease", formData.disease || "");
+        fd.append("symptoms", formData.symptoms || "");
+        fd.append("userId", user?._id)
         fd.append("image", imageFile);
         const response = await api.post(endpoint, fd, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         setData(response.data.data);
-        persistHistory(formData.disease || "[image]", response.data.data);
+        persistHistory(formData.symptoms || "[image]", response.data.data);
       } else {
-        const payload = { disease: formData.disease };
+        const payload = {
+          symptoms: formData.symptoms,
+          userId: user?._id
+        };
         const response = await api.post(endpoint, payload);
-        setData(response.data.data);
-        persistHistory(formData.disease, response.data.data);
+        setData(response.data);
+        // console.log(response.data.raw_text)
+        persistHistory(formData.symptoms, response.data);
       }
     } catch (error) {
       console.error("RemedySuggestion error:", error);
@@ -155,7 +149,7 @@ const RemedySuggestion = () => {
   };
 
   const clearInput = () => {
-    setFormData({ disease: "" });
+    setFormData({ symptoms: "" });
     setImageFile(null);
     setData("");
     setErrors({});
@@ -185,7 +179,7 @@ const RemedySuggestion = () => {
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      setFormData((prev) => ({ ...prev, disease: transcript }));
+      setFormData((prev) => ({ ...prev, symptoms: transcript }));
       toast.success("Voice input captured");
     };
 
@@ -211,22 +205,6 @@ const RemedySuggestion = () => {
       toast.error("Copy failed");
     }
   };
-
-  const saveFavorite = async () => {
-    if (!data) {
-      toast.info("Nothing to save");
-      return;
-    }
-    persistFav(formData.disease || "[image]", data);
-    toast.success("Saved to favorites");
-  };
-
-  const topExamples = [
-    "Migraine with aura",
-    "Recurrent UTI",
-    "Anxiety + insomnia",
-    "Acute bronchitis in elderly",
-  ];
 
   const emptyStateSVG = () => (
     <svg
@@ -569,13 +547,13 @@ const RemedySuggestion = () => {
 
           <hr style={{ borderColor: "var(--border)", margin: "12px 0" }} />
 
-          <Form onSubmit={handleSubmit} noValidate>
+          <form onSubmit={handleSubmit} noValidate>
             <Form.Group as={Row}>
               <Col sm={12}>
                 {/* Textarea for input */}
                 <textarea
-                  name="disease"
-                  value={formData.disease}
+                  name="symptoms"
+                  value={formData.symptoms}
                   onChange={handleChange}
                   className="input-textarea"
                   placeholder={
@@ -583,19 +561,19 @@ const RemedySuggestion = () => {
                       ? "Describe the image or medical condition you want to analyze. You can also attach an image file below and press Search."
                       : mode === "deep"
                         ? "Enter detailed clinical query for comprehensive literature search - e.g. 'chronic migraine treatment options in elderly patients with comorbidities'"
-                        : "Enter symptoms, condition, or clinical query - e.g. 'migraine with nausea and photophobia in 35-year-old female'"
+                        : "Please enter either medicine name or patient symptom"
                   }
                   aria-label="Medical query input"
                 />
 
                 {/* Error display */}
-                {errors.disease && (
+                {errors.symptoms && (
                   <div
                     className="text-danger"
                     role="alert"
                     style={{ marginTop: 8 }}
                   >
-                    {errors.disease}
+                    {errors.symptoms}
                   </div>
                 )}
 
@@ -604,7 +582,7 @@ const RemedySuggestion = () => {
                   {/* Mode selection row */}
                   <div className="mode-row">
                     <div
-                      className={`mode-chip ${mode === "text" ? "active" : ""}`}
+                      className={`mode-chip ${mode === "text" ? "" : "active"}`}
                       onClick={() => setMode("text")}
                       role="tab"
                       tabIndex={0}
@@ -616,27 +594,12 @@ const RemedySuggestion = () => {
                       <span>Text Search</span>
                     </div>
 
-                    <div
-                      className={`mode-chip ${mode === "image" ? "active" : ""}`}
-                      onClick={() => setMode("image")}
-                      role="tab"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === "Enter" && setMode("image")}
-                      aria-selected={mode === "image"}
-                      aria-label="Image analysis mode"
-                    >
-                      <FiImage aria-hidden />
-                      <span>Image Analysis</span>
-                    </div>
-
-
-
                     <button
                       type="submit"
                       className="btn-gradient"
                       disabled={loading || user?.hit_count === 0}
                       aria-label="Search for remedies"
-                      style={{ marginLeft: "30%" }}
+                      style={{ marginLeft: "50%" }}
                     >
                       {loading ? (
                         <span
@@ -746,7 +709,7 @@ const RemedySuggestion = () => {
                 </div>
               </Col>
             </Form.Group>
-          </Form>
+          </form>
 
           <div
             className="layout-grid"
@@ -809,7 +772,7 @@ const RemedySuggestion = () => {
                       <div className="line" style={{ width: "60%" }} />
                     </div>
                   ) : data ? (
-                    <div style={{ whiteSpace: "pre-wrap" }}>{data}</div>
+                    <div style={{ whiteSpace: "pre-wrap" }}>{data.raw_text}</div>
                   ) : (
                     <div
                       style={{
