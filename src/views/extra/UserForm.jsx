@@ -20,6 +20,7 @@ import {
   FaFileMedical,
   FaInfoCircle,
 } from "react-icons/fa";
+import axios from 'axios'
 import { FaGlobe } from "react-icons/fa";
 /*
   Upgraded patient-facing UserForm.jsx
@@ -226,7 +227,7 @@ const UserForm = () => {
     if (id) data.append("user", id);
 
     try {
-      await api.post(`${API_URL}/cases/add_post/`, data, {
+      await axios.post(`${API_URL}/cases/add_post/`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Case submitted");

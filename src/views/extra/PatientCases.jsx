@@ -48,32 +48,7 @@ const defaultStatuses = ["Active", "Closed"];
 
 /* temporary demo useful fallback (kept) */
 const staticData = [
-  {
-    id: 1,
-    title: "Case 1: abhi sharma",
-    description: "Patient reports chest pain for the past 3 days.",
-    category: "Cardiology",
-    patient: { name: "Abhi Sharma", age: 45, sex: "M", id: "P-1001" },
-    priority: "High",
-    assignedTo: { name: "Dr. Mehta", initials: "DM" },
-    attachments: 2,
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-    status: "New",
-    lastPrescription: "Arnica 30",
-  },
-  {
-    id: 2,
-    title: "Case 2: rahit naya",
-    description: "Recurring headaches with nausea and sensitivity to light.",
-    category: "Neurology",
-    patient: { name: "Rahit Naya", age: 29, sex: "M", id: "P-1002" },
-    priority: "Medium",
-    assignedTo: { name: "Dr. Roy", initials: "DR" },
-    attachments: 0,
-    lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    status: "Active",
-    lastPrescription: "Belladonna 200",
-  },
+
 ];
 
 /* ---------- Styles: CSS block for animations + small classes ---------- */

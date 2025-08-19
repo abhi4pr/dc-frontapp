@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useContext, useState } from "react";
 
 // react-bootstrap
 import { Row, Col, Card, Table, ListGroup } from "react-bootstrap";
@@ -18,43 +18,54 @@ import {
 
 // project import
 import OrderCard from "../../components/Widgets/Statistic/OrderCard";
-import SocialCard from "../../components/Widgets/Statistic/SocialCard";
-
-import uniqueVisitorChart from "./chart/analytics-unique-visitor-chart";
-import customerChart from "./chart/analytics-cuatomer-chart";
-
-// ==============================|| DASHBOARD ANALYTICS ||============================== //
+import { UserContext } from "../../contexts/UserContext";
+import api from "../../utility/api";
+import { API_URL } from "../../constants";
 
 const DashAnalytics = () => {
+  const { user } = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+  const [count, setCount] = useState(0)
+  const [data, setData] = useState({})
+
+  const fetchData = async () => {
+    setLoading(true);
+
+    try {
+      const response = await api.get(
+        `${API_URL}/cases/get_user_posts/${user?._id}`
+      );
+      setData(response.data?.posts || []);
+    } catch (err) {
+      console.error("Error fetching data", err);
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user?._id]);
+
   return (
     <React.Fragment>
       <Row>
         {/* order cards */}
-        <Col md={6} xl={3}>
-          <OrderCard
-            params={{
-              title: "Total Patients",
-              class: "bg-c-blue",
-              icon: <Users size={24} color="white" />, // Users icon for patients
-              primaryText: "xx",
-              secondaryText: "All Time",
-              extraText: "",
-            }}
-          />
-        </Col>
-        <Col md={6} xl={3}>
-          <OrderCard
-            params={{
-              title: "New Cases",
-              class: "bg-c-green",
-              icon: <UserCheck size={24} color="white" />, // UserCheck for new cases
-              primaryText: "xx",
-              secondaryText: "This Month",
-              extraText: "",
-            }}
-          />
-        </Col>
-
+        {loading ? 'Loading please wait...' : (
+          <Col md={6} xl={3}>
+            <OrderCard
+              params={{
+                title: "Total Patients",
+                class: "bg-c-blue",
+                icon: <Users size={24} color="white" />,
+                primaryText: `${data?.length}`,
+                secondaryText: "All Time",
+                extraText: "",
+              }}
+            />
+          </Col>
+        )}
       </Row>
     </React.Fragment>
   );
