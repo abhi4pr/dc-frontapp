@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   BsSearch,
   BsPrinter,
@@ -19,6 +19,8 @@ import {
   BsInfoCircle,
 } from "react-icons/bs";
 import axios from "axios";
+import { UserContext } from "../../contexts/UserContext";
+import api from "../../utility/api";
 
 const mockUserContext = {
   user: { _id: "demo_user", hit_count: 150 },
@@ -52,8 +54,7 @@ const EXPERTS_CORPUS = [
 ];
 
 const ExpertSystem = () => {
-  const { user } = mockUserContext;
-
+  const { user } = useContext(UserContext);
   // Form state
   const [formData, setFormData] = useState({ dr1: "", dr2: "", symptoms: "" });
   const [errors, setErrors] = useState({});
@@ -148,14 +149,12 @@ const ExpertSystem = () => {
     try {
       setLoading(true);
 
-      const response = await axios.post(`/ai/send_expert/`, {
+      const response = await api.post(`/ai/send_expert/`, {
         dr1: formData.dr1,
         dr2: formData.dr2,
         symptoms: formData.symptoms,
         userId: user?._id,
       });
-
-      if (!mountedRef.current) return;
 
       setData(response.data);
       setMetaInfo(response.data?.meta || null);

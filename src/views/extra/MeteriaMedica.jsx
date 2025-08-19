@@ -114,7 +114,7 @@ async function trimCacheIfNeeded() {
       const toRemove = all.slice(0, all.length - CACHE_MAX);
       toRemove.forEach((r) => store.delete(r.key));
     };
-  } catch (e) { }
+  } catch (e) {}
 }
 
 async function clearExpiredEntries() {
@@ -133,7 +133,7 @@ async function clearExpiredEntries() {
       }
       cursor.continue();
     };
-  } catch (e) { }
+  } catch (e) {}
 }
 
 /* ------------------ Utilities ------------------ */
@@ -198,9 +198,9 @@ function computeConfidenceComponents(entry, query = "") {
       ? Array.isArray(entry.summary)
         ? entry.summary
         : String(entry.summary)
-          .split(".")
-          .map((s) => s.trim())
-          .filter(Boolean)
+            .split(".")
+            .map((s) => s.trim())
+            .filter(Boolean)
       : [];
 
   const sourceCountRaw = Math.min(10, sources.length);
@@ -268,9 +268,9 @@ function computeConfidenceComponents(entry, query = "") {
   // combine with weights (tunable)
   const score = Math.round(
     0.4 * matchScore + // how well it matches the doctor's search
-    0.25 * sourceCount + // how many sources
-    0.2 * provingCount + // how many provings
-    0.15 * concordance // how much agreement across sources
+      0.25 * sourceCount + // how many sources
+      0.2 * provingCount + // how many provings
+      0.15 * concordance // how much agreement across sources
   );
 
   return {
@@ -393,9 +393,7 @@ const MeteriaMedica = () => {
   /* ---------- Suggestion fetcher (server-first, fallback corpus) ---------- */
   const fetchSuggestions = async (q) => {
     try {
-      const resp = await api.get(
-        `${API_URL}/search/suggest?q=${encodeURIComponent(q)}`
-      );
+      const resp = await api.get(`${API_URL}/`);
       if (
         resp &&
         resp.data &&
@@ -508,44 +506,24 @@ const MeteriaMedica = () => {
 
     const key = formData.medicine_name.trim().toLowerCase();
     // check indexedDB cache
-    try {
-      const cached = await getCacheEntry(key);
-      if (cached) {
-        setCacheBadge(true);
-        setData(cached);
-        // background refresh
-        refreshFromServer(key).catch(() => { });
-        setTimeout(
-          () =>
-            resultsRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            }),
-          120
-        );
-        return;
-      }
-    } catch (e) {
-      // fallback continue
-    }
 
     // abort previous
     try {
       controllerRef.current?.abort();
-    } catch (e) { }
+    } catch (e) {}
     controllerRef.current = new AbortController();
     const reqId = ++latestReqId.current;
 
     try {
       setLoading(true);
-      const response = await api.post(
-        `${API_URL}/ai/send_medicine_detail/${user?._id}`,
-        { medicine_name: formData.medicine_name }, // <- payload preserved
-        { signal: controllerRef.current.signal }
-      );
-      // ensure only latest response accepted
-      if (reqId !== latestReqId.current) return;
-      const payload = response?.data?.data;
+      const response = await api.post(`${API_URL}/ai/send_meteria/`, {
+        medicine_name: formData.medicine_name,
+        authors: selectedAuthors,
+        edition: selectedEditions,
+        userId: user?._id,
+      });
+
+      const payload = response?.data;
       // compute and attach confidence components
       if (payload && !Array.isArray(payload)) {
         const cc = computeConfidenceComponents(payload, formData.medicine_name);
@@ -576,7 +554,7 @@ const MeteriaMedica = () => {
       console.error("Materia Medica search error:", err);
       setInlineError(
         err?.response?.data?.message ||
-        "An error occurred while fetching medicine detail."
+          "An error occurred while fetching medicine detail."
       );
       if (err.response && err.response.data) {
         toast.error(err.response.data.message || "An error occurred.");
@@ -776,7 +754,7 @@ const MeteriaMedica = () => {
     if (!data) return null;
 
     // string fallback
-    if (typeof data === "string") {
+    if (data.raw_text) {
       return (
         <Card className="p-3" aria-live="polite">
           <div
@@ -804,7 +782,9 @@ const MeteriaMedica = () => {
               </Button>
             </div>
           </div>
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{data}</pre>
+          <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+            {data.raw_text}
+          </pre>
         </Card>
       );
     }
@@ -1199,7 +1179,7 @@ const MeteriaMedica = () => {
                   navigator.clipboard
                     ?.writeText(remedy)
                     .then(() => toast.success("Copied"))
-                    .catch(() => { })
+                    .catch(() => {})
                 }
               >
                 Copy name
@@ -1347,13 +1327,6 @@ const MeteriaMedica = () => {
         {inlineError && (
           <div className="mm-inline-error" role="alert">
             {inlineError}{" "}
-            <Button
-              size="sm"
-              variant="link"
-              onClick={() => handleSubmit({ preventDefault: () => { } })}
-            >
-              Retry
-            </Button>
           </div>
         )}
 
@@ -1383,7 +1356,6 @@ const MeteriaMedica = () => {
                     aria-controls="mm-suggestions"
                     aria-expanded={showSuggestions}
                   />
-
 
                   {showSuggestions && suggestions.length > 0 && (
                     <div
@@ -1591,8 +1563,6 @@ const MeteriaMedica = () => {
           }}
         >
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ fontWeight: 800 }}>{compareList.length}</div>
-            <div style={{ color: "#6c757d" }}>selected for compare</div>
             {compareList.map((c, i) => (
               <Badge
                 key={i}
@@ -1605,18 +1575,7 @@ const MeteriaMedica = () => {
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={() => setCompareList([])}
-            >
-              Clear
-            </Button>
-            <Button variant="primary" size="sm" onClick={openCompare}>
-              Open Compare
-            </Button>
-          </div>
+          <div style={{ display: "flex", gap: 8 }}></div>
         </div>
 
         {/* Compare Modal */}
@@ -1843,7 +1802,7 @@ const MeteriaMedica = () => {
                                     (typeof compareList[i] === "string"
                                       ? compareList[i]
                                       : compareList[i].remedy ||
-                                      compareList[i].name)) ||
+                                        compareList[i].name)) ||
                                     `Item ${i + 1}`}
                                 </div>
                                 <div

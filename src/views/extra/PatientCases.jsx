@@ -22,7 +22,7 @@ import {
 import { UserContext } from "../../contexts/UserContext";
 import api from "../../utility/api";
 import { API_URL } from "../../constants";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /**
  * Upgraded single-file PatientCases.jsx
@@ -138,6 +138,7 @@ const PatientCases = () => {
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [dragging, setDragging] = useState(null);
   const [lastFetchAt, setLastFetchAt] = useState(null);
+  const navigate = useNavigate();
 
   // MARK: handler name must be preserved
   const fetchData = async () => {
@@ -359,6 +360,7 @@ const PatientCases = () => {
     const displayName = maskPHI
       ? maskString(item.patient?.name || item.title || "Unknown")
       : item.patient?.name || item.title;
+
     return (
       <div
         role="article"
@@ -380,8 +382,10 @@ const PatientCases = () => {
           display: "flex",
           gap: 10,
           alignItems: "flex-start",
+          cursor: "pointer",
         }}
-        onDoubleClick={() => openQuickView(item)}
+        // 👇 Redirect to new page instead of opening modal
+        onClick={() => navigate(`/case-details/${item.id}`)}
       >
         {/* avatar */}
         <div
@@ -417,9 +421,6 @@ const PatientCases = () => {
             <div className="tiny">
               {item.patient?.age ? ` • ${item.patient.age}y` : ""}
             </div>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-
-            </div>
           </div>
 
           <div
@@ -433,38 +434,6 @@ const PatientCases = () => {
             }}
           >
             {item.description}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              marginTop: 10,
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                gap: 8,
-                alignItems: "center",
-              }}
-            >
-
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  openQuickView(item);
-                }}
-                aria-label={`Quick view ${item.id}`}
-                className="focus-ring"
-              >
-                View
-              </Button>
-            </div>
           </div>
         </div>
       </div>

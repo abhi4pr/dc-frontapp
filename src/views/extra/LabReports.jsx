@@ -60,7 +60,7 @@ const LabReports = () => {
     try {
       const raw = localStorage.getItem("lab_recent_v1");
       if (raw) setRecent(JSON.parse(raw));
-    } catch (e) { }
+    } catch (e) {}
   }, []);
 
   const persistRecent = (entry) => {
@@ -68,7 +68,7 @@ const LabReports = () => {
     setRecent(next);
     try {
       localStorage.setItem("lab_recent_v1", JSON.stringify(next));
-    } catch (e) { }
+    } catch (e) {}
   };
 
   // ---------- handlers preserved ----------
@@ -91,28 +91,25 @@ const LabReports = () => {
       const form = new FormData();
       form.append("title", formData.title);
       form.append("description", formData.description || "");
+      form.append("userId", user?._id);
       if (formData.report) {
         form.append("report", formData.report);
       }
 
       // Use api (axios instance). Attach onUploadProgress to show progress.
-      const response = await api.post(
-        `${API_URL}/ai/send_ai_report/${user?._id}`,
-        form,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const p = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              setUploadProgress(p);
-            }
-          },
-        }
-      );
+      const response = await api.post(`${API_URL}/ai/send_lab/`, form, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const p = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(p);
+          }
+        },
+      });
 
       // keep response.data as before
       setData(response.data.data);
@@ -137,9 +134,9 @@ const LabReports = () => {
       }
     } catch (error) {
       if (error.response && error.response.data) {
-        toast.error(error.response.data.message || "An error occurred.");
+        toast.error(error.response.data.message || "Feature coming soon...");
       } else {
-        toast.error("An error occurred.");
+        toast.error("Feature coming soon...");
       }
       console.error("Submission error:", error);
     } finally {
@@ -228,7 +225,7 @@ const LabReports = () => {
     setRecent(next);
     try {
       localStorage.setItem("lab_recent_v1", JSON.stringify(next));
-    } catch (e) { }
+    } catch (e) {}
   };
 
   // quick parse placeholder (client side) — demonstrates "Extract values" affordance
