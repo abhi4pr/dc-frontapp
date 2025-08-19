@@ -145,9 +145,10 @@ const PatientCases = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`${API_URL}/cases/${user?._id}`);
-      setPatientCase(Array.isArray(response.data) ? response.data : []);
-      setLastFetchAt(new Date().toISOString());
+      const response = await api.get(
+        `${API_URL}/cases/get_user_posts/${user?._id}`
+      );
+      setPatientCase(response.data?.posts || []);
     } catch (err) {
       console.error("Error fetching data", err);
       setError("");
@@ -176,21 +177,18 @@ const PatientCases = () => {
       patientCase && patientCase.length > 0 ? patientCase : staticData;
     return source.map((item) => ({
       ...item,
-      patient: item.patient || {
-        name: item.title?.replace(/^Case \d+: /i, "") || "Unknown",
-        age: "",
-        sex: "",
-        id: item?.id ? `P-${item.id}` : "",
+      patient: {
+        name: item.patientname || "Unknown",
+        age: item.patientage || "",
+        sex: item.patientgender || "",
+        id: item._id || "",
       },
-      priority: item.priority || "Medium",
-      assignedTo: item.assignedTo || { name: "Unassigned", initials: "U" },
-      attachments: typeof item.attachments === "number" ? item.attachments : 0,
-      lastUpdated:
-        item.lastUpdated ||
-        item.updatedAt ||
-        item.createdAt ||
-        new Date().toISOString(),
-      status: item.status || inferStatusFromCategory(item.category) || "New",
+      description: item.todayconcern || item.keynotes || "",
+      priority: "Medium", // or map from your data if you have a field
+      assignedTo: { name: "Unassigned", initials: "U" },
+      attachments: 0,
+      lastUpdated: item.updatedAt || item.createdAt,
+      status: item.acuteOrChronic === "chronic" ? "Active" : "New",
     }));
   }, [patientCase]);
 
@@ -385,7 +383,7 @@ const PatientCases = () => {
           cursor: "pointer",
         }}
         // 👇 Redirect to new page instead of opening modal
-        onClick={() => navigate(`/case-details/${item.id}`)}
+        onClick={() => navigate(`/case-details/${item._id}`)}
       >
         {/* avatar */}
         <div
