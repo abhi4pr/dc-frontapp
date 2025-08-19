@@ -12,19 +12,17 @@ const Details = () => {
   const [formData, setFormData] = useState({
     title: "",
   });
-  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (dietId) {
       api
-        .get(`${API_URL}/diets/${dietId}`)
+        .get(`${API_URL}/cases/${dietId}`)
         .then((response) => {
           const { title, description, category, calories, image } =
             response.data.diet;
           setFormData({ title, description, category, image: null });
-          setImagePreview(`${image}`);
         })
         .catch((error) => {
           console.error("Error fetching diet data:", error);

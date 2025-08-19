@@ -18,7 +18,7 @@ import {
   BsCheckCircle,
   BsInfoCircle,
 } from "react-icons/bs";
-import axios from 'axios';
+import axios from "axios";
 
 const mockUserContext = {
   user: { _id: "demo_user", hit_count: 150 },
@@ -118,7 +118,6 @@ const ExpertSystem = () => {
     }
   };
 
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -149,15 +148,17 @@ const ExpertSystem = () => {
     try {
       setLoading(true);
 
-      const response = await axios.post(
-        `/ai/send_compare_data/${user?._id}`,
-        { dr1: formData.dr1, dr2: formData.dr2, symptoms: formData.symptoms }
-      );
+      const response = await axios.post(`/ai/send_expert/`, {
+        dr1: formData.dr1,
+        dr2: formData.dr2,
+        symptoms: formData.symptoms,
+        userId: user?._id,
+      });
 
       if (!mountedRef.current) return;
 
-      setData(response.data.data);
-      setMetaInfo(response.data.meta || null);
+      setData(response.data);
+      setMetaInfo(response.data?.meta || null);
 
       setTimeout(
         () =>
@@ -265,7 +266,6 @@ const ExpertSystem = () => {
                   </option>
                 ))}
               </select>
-
             </div>
             {errors.dr1 && (
               <div
@@ -328,12 +328,16 @@ const ExpertSystem = () => {
                 ))}
               </select>
               {errors.dr2 && (
-                <div style={{ color: "#dc2626", fontSize: "13px", marginTop: "6px" }}>
+                <div
+                  style={{
+                    color: "#dc2626",
+                    fontSize: "13px",
+                    marginTop: "6px",
+                  }}
+                >
                   {errors.dr2}
                 </div>
               )}
-
-
             </div>
             {errors.dr2 && (
               <div
@@ -367,8 +371,6 @@ const ExpertSystem = () => {
               resize: "vertical",
             }}
           />
-
-
 
           {errors.symptoms && (
             <div
@@ -429,7 +431,7 @@ const ExpertSystem = () => {
       );
     }
 
-    if (typeof data === "string") {
+    if (data.raw_text) {
       return (
         <div
           className="analysis-result"
@@ -451,7 +453,7 @@ const ExpertSystem = () => {
               color: "#374151",
             }}
           >
-            {data}
+            {data?.raw_text}
           </pre>
         </div>
       );
@@ -801,7 +803,6 @@ const ExpertSystem = () => {
             padding: "8px",
           }}
         >
-
           <button
             className={`nav-link ${activeTab === "compare" ? "active" : ""}`}
             onClick={() => setActiveTab("compare")}
@@ -833,19 +834,13 @@ const ExpertSystem = () => {
           >
             Choose Your Expert System
           </h4>
-          <div className="row g-3">
-
-          </div>
+          <div className="row g-3"></div>
         </div>
       )}
 
       {/* Analysis Form */}
       <div className="analysis-form-section mb-5">
-        {activeTab === "single" ? (
-          <></>
-        ) : (
-          <ComparisonAnalysis />
-        )}
+        {activeTab === "single" ? <></> : <ComparisonAnalysis />}
       </div>
 
       {/* Results Section */}

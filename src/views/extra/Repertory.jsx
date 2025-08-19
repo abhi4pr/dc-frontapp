@@ -77,8 +77,8 @@ async function dbSet(key, value, ttl = CACHE_TTL) {
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
     store.put({ key, value, ts: Date.now(), ttl });
-    tx.oncomplete = () => trimCache().catch(() => { });
-  } catch (e) { }
+    tx.oncomplete = () => trimCache().catch(() => {});
+  } catch (e) {}
 }
 async function trimCache() {
   try {
@@ -93,7 +93,7 @@ async function trimCache() {
       const remove = list.slice(0, list.length - CACHE_MAX);
       remove.forEach((r) => store.delete(r.key));
     };
-  } catch (e) { }
+  } catch (e) {}
 }
 async function clearExpired() {
   try {
@@ -109,7 +109,7 @@ async function clearExpired() {
       if (v && v.ttl && now - v.ts > v.ttl) c.delete();
       c.continue();
     };
-  } catch (e) { }
+  } catch (e) {}
 }
 
 /* ----------------------------- small utilities ----------------------------- */
@@ -117,9 +117,9 @@ const esc = (s) =>
   s === null || s === undefined
     ? ""
     : String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function highlight(text = "", tokens = []) {
   if (!text) return esc(text);
@@ -132,7 +132,7 @@ function highlight(text = "", tokens = []) {
     try {
       const re = new RegExp(`(${escapeRegExp(t)})`, "gi");
       out = out.replace(re, "<mark>$1</mark>");
-    } catch (e) { }
+    } catch (e) {}
   });
   return out;
 }
@@ -175,7 +175,7 @@ function computeScoreComponents(
             );
         });
       });
-    } catch (e) { }
+    } catch (e) {}
   }
   const sourceTrust = Math.round(baseTrust);
 
@@ -213,9 +213,9 @@ function computeScoreComponents(
 
   const final = Math.round(
     0.34 * degreeMatch +
-    0.28 * sourceTrust +
-    0.22 * rubricWeight +
-    0.16 * severityMatch
+      0.28 * sourceTrust +
+      0.22 * rubricWeight +
+      0.16 * severityMatch
   );
   return {
     score: Math.min(99, Math.max(0, final)),
@@ -268,9 +268,9 @@ function keynoteSet(item) {
       ? Array.isArray(item.summary)
         ? item.summary
         : String(item.summary)
-          .split(".")
-          .map((s) => s.trim())
-          .filter(Boolean)
+            .split(".")
+            .map((s) => s.trim())
+            .filter(Boolean)
       : [];
   return new Set(
     keys.map((k) => String(k).trim().toLowerCase()).filter(Boolean)
@@ -451,18 +451,16 @@ const Repertory = () => {
 
   // clear expired cache
   useEffect(() => {
-    clearExpired().catch(() => { });
+    clearExpired().catch(() => {});
   }, []);
 
   /* ----------------------------- suggestion fetch ----------------------------- */
   const fetchSugs = async (q) => {
     try {
-      const res = await api.get(
-        `${API_URL}/search/suggest?q=${encodeURIComponent(q)}`
-      );
+      const res = await api.get(`${API_URL}/`);
       if (res && res.data && Array.isArray(res.data.suggestions))
         return res.data.suggestions;
-    } catch (e) { }
+    } catch (e) {}
     const corp = [
       "anxiety",
       "headache",
@@ -556,7 +554,7 @@ const Repertory = () => {
       if (cached) {
         setCacheBadge(true);
         setData(cached);
-        refreshBackground(cacheKey).catch(() => { });
+        refreshBackground(cacheKey).catch(() => {});
         setTimeout(
           () =>
             resultsRef.current?.scrollIntoView({
@@ -567,11 +565,11 @@ const Repertory = () => {
         );
         return;
       }
-    } catch (e) { }
+    } catch (e) {}
 
     try {
       controllerRef.current?.abort();
-    } catch (e) { }
+    } catch (e) {}
     controllerRef.current = new AbortController();
     const reqId = ++latestReq.current;
 
@@ -579,65 +577,22 @@ const Repertory = () => {
       setLoading(true);
       // PRESERVED PAYLOAD EXACTLY: disease property must exist in body
       const body = {
-        disease: formData.disease,
+        query: formData.disease,
         mode: searchMode,
         repertories: repertoriesSelected,
         authors: authorFilter,
         severity,
-        page: 1,
-        limit: 200,
+        userId: user?._id,
       };
 
-      const resp = await api.post(
-        `${API_URL}/ai/send_search_remedy/${user?._id}`,
-        body,
-        { signal: controllerRef.current.signal }
-      );
-      if (reqId !== latestReq.current) return;
-      const payload = resp?.data?.data;
+      const resp = await api.post(`${API_URL}/ai/send_repertory/`, body);
 
-      // compute score & snippets client-side if not present
-      if (Array.isArray(payload)) {
-        payload.forEach((p) => {
-          if (p && typeof p === "object") {
-            p._score = computeScoreComponents(
-              p,
-              formData.disease,
-              severity,
-              authorWeights
-            );
-            p._snips = matchedSnips(p, formData.disease);
-          }
-        });
-      } else if (payload && typeof payload === "object") {
-        payload._score = computeScoreComponents(
-          payload,
-          formData.disease,
-          severity,
-          authorWeights
-        );
-        payload._snips = matchedSnips(payload, formData.disease);
-      }
+      const payload = resp?.data;
 
       setData(payload);
       setCacheBadge(false);
       await dbSet(cacheKey, payload);
-      // telemetry best-effort
-      try {
-        await api.post(`${API_URL}/telemetry/repertory_query`, {
-          user_id: user?._id,
-          query: {
-            disease: formData.disease,
-            mode: searchMode,
-            repertories: repertoriesSelected,
-            authors: authorFilter,
-            severity,
-          },
-          model_version: resp?.data?.meta?.model_version || null,
-          response_hash: resp?.data?.meta?.response_hash || null,
-          timestamp: Date.now(),
-        });
-      } catch (e) { }
+
       setTimeout(
         () =>
           resultsRef.current?.scrollIntoView({
@@ -651,7 +606,7 @@ const Repertory = () => {
       console.error("Repertory search error:", err);
       setInlineError(
         err?.response?.data?.message ||
-        "An unexpected error occurred while searching. Please retry."
+          "An unexpected error occurred while searching. Please retry."
       );
       if (err.response && err.response.data)
         toast.error(err.response.data.message || "An error occurred.");
@@ -699,7 +654,7 @@ const Repertory = () => {
       }
       setData(payload);
       await dbSet(cacheKey, payload);
-    } catch (e) { }
+    } catch (e) {}
   };
 
   /* ----------------------- author & repertory helpers ----------------------- */
@@ -948,7 +903,7 @@ const Repertory = () => {
                     matched.map((r, i) => {
                       const prov =
                         Array.isArray(item.matched_sources) &&
-                          item.matched_sources[i]
+                        item.matched_sources[i]
                           ? item.matched_sources[i]
                           : null;
                       return (
@@ -1048,8 +1003,8 @@ const Repertory = () => {
               onClick={() => {
                 setMmContent(
                   item.materia_medica ||
-                  item.mm_excerpt ||
-                  `Materia medica for ${n} not available.`
+                    item.mm_excerpt ||
+                    `Materia medica for ${n} not available.`
                 );
                 setMmOpen(true);
               }}
@@ -1079,10 +1034,10 @@ const Repertory = () => {
   /* ----------------------------- render results area ----------------------------- */
   const renderResults = () => {
     if (!data) return null;
-    if (typeof data === "string")
+    if (data.raw_text)
       return (
         <div style={{ padding: 12 }}>
-          <pre>{data}</pre>
+          <pre>{data?.raw_text}</pre>
         </div>
       );
     if (!Array.isArray(data) || filteredList.length === 0)
@@ -1239,13 +1194,6 @@ const Repertory = () => {
             }}
           >
             {inlineError}{" "}
-            <Button
-              size="sm"
-              variant="link"
-              onClick={() => handleSubmit({ preventDefault: () => { } })}
-            >
-              Retry
-            </Button>
           </div>
         )}
 
@@ -1416,9 +1364,9 @@ const Repertory = () => {
                   <div
                     key={r}
                     className="chip"
-                    onClick={() => toggleRep(r)}
+                    onClick={() => toggleAuthor(r)}
                     style={{
-                      border: repertoriesSelected.includes(r)
+                      border: authorFilter.includes(r)
                         ? "2px solid rgba(126,163,255,0.5)"
                         : undefined,
                     }}
@@ -1524,8 +1472,8 @@ const Repertory = () => {
           }}
         >
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <div style={{ fontWeight: 800 }}>{comparison.length}</div>
-            <div style={{ color: "#6c757d" }}>selected for compare</div>
+            <div style={{ fontWeight: 800 }}></div>
+
             {comparison.map((c, i) => (
               <Badge
                 key={i}
@@ -1538,18 +1486,7 @@ const Repertory = () => {
             ))}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={() => setComparison([])}
-            >
-              Clear
-            </Button>
-            <Button variant="primary" size="sm" onClick={openCompare}>
-              Open Compare
-            </Button>
-          </div>
+          <div style={{ display: "flex", gap: 8 }}></div>
         </div>
       </div>
 
