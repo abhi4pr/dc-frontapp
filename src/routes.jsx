@@ -56,6 +56,26 @@ export const routes = [
   },
   {
     exact: "true",
+    path: "/about-us",
+    element: lazy(() => import("./views/extra/About")),
+  },
+  {
+    exact: "true",
+    path: "/contact-us",
+    element: lazy(() => import("./views/extra/Contact")),
+  },
+  {
+    exact: "true",
+    path: "/privacy-policy",
+    element: lazy(() => import("./views/extra/Privacy")),
+  },
+  {
+    exact: "true",
+    path: "/refund-policy",
+    element: lazy(() => import("./views/extra/Refund")),
+  },
+  {
+    exact: "true",
     path: "/user-form/:id",
     element: lazy(() => import("./views/extra/UserForm")),
   },
