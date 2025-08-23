@@ -340,9 +340,16 @@ const CaseIntakes = () => {
     if (formData.image) data.append("image", formData.image);
     if (user?._id) data.append("user", user._id);
     try {
-      await api.post(`${API_URL}/cases/add_post`, data, {
+      const postRes = await api.post(`${API_URL}/cases/add_post`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      const postId = postRes.data.post._id;
+      const aiRes = await api.post(`${API_URL}/ai/send_patient_data`, {
+        ...formData,
+        userId: user._id,
+      });
+      const rawText = aiRes.data.raw_text;
+      await api.put(`${API_URL}/cases/${postId}`, { airesult: rawText });
       toast.success("Case saved");
       localStorage.removeItem("caseIntakesDraft");
       setFormData(initialForm);
