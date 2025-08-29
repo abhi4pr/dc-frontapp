@@ -1512,6 +1512,108 @@ const MeteriaMedica = () => {
             </Col>
           </Form.Group>
         </Form>
+        <Form.Group>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
+              {authorChips.map((a) => (
+                <Form.Check
+                  key={a}
+                  type="checkbox"
+                  id={`author-${a}`}
+                  label={a}
+                  checked={selectedAuthors.includes(a)}
+                  onChange={() => {
+                    setSelectedAuthors((prev) =>
+                      prev.includes(a)
+                        ? prev.filter((x) => x !== a)
+                        : [...prev, a]
+                    );
+                  }}
+                />
+              ))}
+            </div>
+        </Form.Group>
+        <Form.Group>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
+            {authorChips.map((a) => (
+              <Form.Check
+                key={a}
+                type="radio"
+                name="author"
+                id={`author-${a}`}
+                label={a}
+                checked={selectedAuthors[0] === a}
+                onChange={() => setSelectedAuthors([a])}
+              />
+            ))}
+          </div>
+        </Form.Group>
+        <div className="mm-filters">
+          {/* Authors Filter */}
+          <div className="mm-filter-section">
+            <h5 style={{ fontWeight: 700, color: "#375e84" }}>
+              <FaBook /> Authors
+            </h5>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: "6px",
+                marginTop: "8px",
+              }}
+            >
+              {authorChips.map((a) => (
+                <Form.Check
+                  key={a}
+                  type="checkbox"
+                  id={`author-${a}`}
+                  label={a}
+                  checked={selectedAuthors.includes(a)}
+                  onChange={() => {
+                    setSelectedAuthors((prev) =>
+                      prev.includes(a)
+                        ? prev.filter((x) => x !== a)
+                        : [...prev, a]
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Editions Filter */}
+          <div className="mm-filter-section" style={{ marginTop: "20px" }}>
+            <h5 style={{ fontWeight: 700, color: "#375e84" }}>
+              <FaHistory /> Editions
+            </h5>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+                marginTop: "8px",
+              }}
+            >
+              {editionChips.map((e) => (
+                <Form.Check
+                  key={e}
+                  type="checkbox"
+                  id={`edition-${e}`}
+                  label={e}
+                  checked={selectedEditions.includes(e)}
+                  onChange={() => {
+                    setSelectedEditions((prev) =>
+                      prev.includes(e)
+                        ? prev.filter((x) => x !== e)
+                        : [...prev, e]
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+
 
         {user?.hit_count === 0 && (
           <p className="text-danger mt-2">

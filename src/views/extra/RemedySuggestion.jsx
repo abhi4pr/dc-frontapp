@@ -522,6 +522,9 @@ const RemedySuggestion = () => {
           .w-100-on-mob{
           width:100% !important;
         }
+          .w-50-on-mob{
+          width:50% !important;
+        }
 
         .marginLeft50{
           margin-left:0% !important;
