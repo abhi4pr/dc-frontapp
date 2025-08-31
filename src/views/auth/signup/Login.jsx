@@ -6,6 +6,8 @@ import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
 import { toast } from "react-toastify";
+import logo from '../../../assets/images/homeophatic-logo.png';
+
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -138,7 +140,7 @@ const Login = () => {
         }
         .logo{
           width:92px;height:92px;border-radius:50%;
-          background: var(--icon-grad); display:flex; align-items:center; justify-content:center;
+          background: var(--icon-grad); display:flex; justify-content:center;
           box-shadow: 0 12px 28px rgba(10,14,40,.25);
         }
         .hero h1{ margin:18px 0 6px 0; font-size:22px; color:var(--ink-strong) }
@@ -212,12 +214,8 @@ const Login = () => {
           <aside className="hero" aria-label="Homeopathika login information">
             <span className="badge">Early Access</span>
             <div className="logo" aria-hidden="true">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M7.5 7.5l1-1h7l1 1h2A2.5 2.5 0 0 1 21 10v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17v-7A2.5 2.5 0 0 1 5.5 7.5h2z"
-                  stroke="#3b82f6"
-                  strokeWidth="1.5"
-                />
+              
+              <img src={logo} alt="Homeopathika Logo" width="100" height="120" />
                 <circle
                   cx="12"
                   cy="14"
@@ -225,7 +223,7 @@ const Login = () => {
                   stroke="#8b5cf6"
                   strokeWidth="1.5"
                 />
-              </svg>
+              {/* </svg> */}
             </div>
             <h1>Homeopathika™</h1>
             <p>Secure Doctor Access</p>

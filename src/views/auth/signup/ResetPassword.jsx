@@ -173,7 +173,12 @@ const ResetPassword = () => {
           min-height: 240px;
         }
         .badge{ position:absolute; top:12px; right:12px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.7); color:#071428; font-weight:800; font-size:12px;}
-        .logo{ width:84px; height:84px; border-radius:50%; background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74)); display:flex; align-items:center; justify-content:center; box-shadow: 0 12px 28px rgba(10,14,40,.25) }
+        // .logo{ width:84px; height:84px; border-radius:50%; background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74)); display:flex; align-items:center; justify-content:center; box-shadow: 0 12px 28px rgba(10,14,40,.25) }
+        .logo{
+          width:92px;height:92px;border-radius:50%;
+          background: var(--icon-grad); display:flex; justify-content:center;
+          box-shadow: 0 12px 28px rgba(10,14,40,.25);
+        }
         .hero h2{ margin:14px 0 6px 0; color:var(--text); font-size:20px }
         .hero p{ margin:0; color:var(--muted); font-size:13px }
 
@@ -227,19 +232,14 @@ const ResetPassword = () => {
             <aside className="hero" aria-hidden="false">
               <span className="badge">Secure</span>
               <div className="logo" aria-hidden="true">
-                <svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M12 2C9.8 2 8 3.8 8 6v2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V6c0-2.2-1.8-4-4-4z"
-                    stroke="#3b82f6"
-                    strokeWidth="1.4"
-                  />
-                </svg>
+                <img src={logo} alt="Homeopathika Logo" width="100" height="120" />
+                <circle
+                  cx="12"
+                  cy="14"
+                  r="3.2"
+                  stroke="#8b5cf6"
+                  strokeWidth="1.5"
+                />
               </div>
               <h2>Homeopathika™</h2>
               <p>Reset your password — Doctor Portal</p>

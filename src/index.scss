@@ -1,4 +1,3 @@
-// eslint-disable-next-line
 @import 'assets/scss/style.scss';
 @import 'assets/scss/settings/custom-variables';
 
@@ -195,6 +194,24 @@ td {
     .f-view {
       padding-left: 15px;
       margin-top: 8px;
+    }
+  }
+}
+
+.fade:not(.show){
+  display: none !important;
+}
+
+.fliter-tab{
+  a{
+    &.active{
+      background-color: rgb(10, 87, 87) !important;
+       &:hover{
+      color: white !important;
+    }
+    }
+    &:hover{
+      color: #222 !important;
     }
   }
 }
