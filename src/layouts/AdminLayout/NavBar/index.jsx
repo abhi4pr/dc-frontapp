@@ -18,7 +18,8 @@ const NavBar = () => {
     "navbar",
     "pcoded-header",
     "navbar-expand-lg",
-    "header-blue",
+    // "header-blue",
+    "header-test",
     "headerpos-fixed",
   ];
   if (layout === "vertical") {
@@ -53,7 +54,7 @@ const NavBar = () => {
           <span />
         </Link>
         <Link to="#" className="b-brand">
-          <h5>Homeopathika</h5>
+          <h5 className="text-white">Homeopathika</h5>
         </Link>
         <Link
           to="#"

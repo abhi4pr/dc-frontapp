@@ -9,6 +9,8 @@ import {
   Badge,
   Modal,
   ProgressBar,
+  Nav,
+  Tab
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { BsSearch, BsPrinter, BsPlusLg, BsXLg } from "react-icons/bs";
@@ -1435,7 +1437,7 @@ const MeteriaMedica = () => {
             </Col>
           </Form.Group>
 
-          <Form.Group as={Row} className="mb-3">
+          {/* <Form.Group as={Row} className="mb-3">
             <Col sm={{ span: 10, offset: 2 }}>
               <div className="mm-meta">
                 <div
@@ -1510,8 +1512,83 @@ const MeteriaMedica = () => {
                 </div>
               </div>
             </Col>
-          </Form.Group>
+          </Form.Group> */}
+
+          <Row className="mb-3">
+            <Col sm={{ span: 10, offset: 2 }}>
+                <Tab.Container id="left-tabs-example" defaultActiveKey="first">
+                  <Row>
+                    <Col sm={3}>
+                      <Nav variant="pills" className="flex-column fliter-tab">
+                        <Nav.Item>
+                          <Nav.Link eventKey="first"><FaBook /> Authors:</Nav.Link>
+                        </Nav.Item>
+                        <Nav.Item>
+                          <Nav.Link eventKey="second"><FaHistory /> Editions:</Nav.Link>
+                        </Nav.Item>
+                      </Nav>
+                    </Col>
+                    <Col sm={9}>
+                      <Tab.Content>
+                        <Tab.Pane className="d-flex align-items-center flex-wrap" eventKey="first" style={{ gap: 8}}>
+                          {authorChips.map((a) => (
+                        <div
+                            key={a}
+                            className="mm-pill"
+                            onClick={() => {
+                              setSelectedAuthors((prev) =>
+                                prev.includes(a)
+                                  ? prev.filter((x) => x !== a)
+                                  : [...prev, a]
+                              );
+                            }}
+                            style={{
+                              border: selectedAuthors.includes(a)
+                                ? "2px solid rgba(126,163,255,0.6)"
+                                : undefined,
+                            }}>
+                            {a}
+                        </div>
+                  ))}
+                        </Tab.Pane>
+                        <Tab.Pane className="d-flex align-items-center flex-wrap" eventKey="second" style={{ gap: 8}}>
+                          {editionChips.map((e) => (
+                            <div
+                              key={e}
+                              className="mm-pill"
+                              onClick={() => {
+                                setSelectedEditions((prev) =>
+                                  prev.includes(e)
+                                    ? prev.filter((x) => x !== e)
+                                    : [...prev, e]
+                                );
+                              }}
+                              style={{
+                                border: selectedEditions.includes(e)
+                                  ? "2px solid rgba(255,144,193,0.5)"
+                                  : undefined,
+                              }}
+                            >
+                              {e}
+                            </div>
+                          ))}
+                        </Tab.Pane>
+                      </Tab.Content>
+                    </Col>
+                  </Row>
+                </Tab.Container>
+
+                <div className="mt-2" style={{ marginLeft: 12, color: "#6c757d", fontSize: 13 }}>
+                  Tip: Use exact remedy names for most precise retrieval. Use
+                  Author/Edition filters to limit provenance sources.
+                </div>
+            </Col>
+          </Row>
+
+          
         </Form>
+        
+        
 
         {user?.hit_count === 0 && (
           <p className="text-danger mt-2">

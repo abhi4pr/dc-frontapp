@@ -14,11 +14,14 @@ import {
   Badge,
   ProgressBar,
   Modal,
+  Nav,
+  Tab,
   FormCheck,
   InputGroup,
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaBook, FaHistory } from "react-icons/fa";
 import {
   BsSearch,
   BsClockHistory,
@@ -432,6 +435,10 @@ const Repertory = () => {
       .badge-round { width:84px; height:84px; border-radius:12px; display:grid; place-items:center; font-weight:900; background: linear-gradient(135deg,#7ea3ff33,#ff90c133); color:#072034; font-size:18px; }
       .rem-title { font-weight:800; font-size:16px; color:#042b33; }
       .rem-meta { color:#4b5b63; font-size:13px; margin-bottom:8px; }
+      
+      .mm-pill { padding:8px 16px; border-radius:999px; font-weight:700; cursor:pointer; border:1px solid rgba(10,60,80,0.06);
+        background: linear-gradient(90deg, rgba(126,163,255,0.08), rgba(255,144,193,0.04));
+      }
       mark { background: #fff59a; padding:0 3px; border-radius:3px; }
 
       .controls-col { display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:140px; }
@@ -1336,7 +1343,7 @@ const Repertory = () => {
                 </div>
               </div>
 
-              <div className="chips-row" style={{ marginTop: 12 }}>
+              {/* <div className="chips-row" style={{ marginTop: 12 }}>
                 <div style={{ fontWeight: 700, color: "#375e84" }}>
                   <BsFillLightningFill /> Repertories:
                 </div>
@@ -1354,13 +1361,13 @@ const Repertory = () => {
                     {r}
                   </div>
                 ))}
-              </div>
+              </div>       */}
 
-              <div className="chips-row" style={{ marginTop: 8 }}>
-                <div style={{ fontWeight: 700, color: "#375e84" }}>
+              {/* <div className="chips-row" style={{ marginTop: 8 }}> */}
+                {/* <div style={{ fontWeight: 700, color: "#375e84" }}>
                   Authors:
-                </div>
-                {authorsList.map((r) => (
+                </div> */}
+                {/* {authorsList.map((r) => (
                   <div
                     key={r}
                     className="chip"
@@ -1373,20 +1380,20 @@ const Repertory = () => {
                   >
                     {r}
                   </div>
-                ))}
+                ))} */}
 
-                <Button
+                {/* <Button
                   size="sm"
                   variant="outline-secondary"
                   onClick={() => setAuthorWeights({})}
                 >
                   Reset weights
                 </Button>
-              </div>
+              </div> */}
 
-              <div className="author-weights"></div>
+              {/* <div className="author-weights"></div> */}
 
-              <div
+              {/* <div
                 style={{
                   marginTop: 12,
                   display: "flex",
@@ -1418,9 +1425,122 @@ const Repertory = () => {
                 >
                   {severity}
                 </div>
-              </div>
+              </div> */}
             </Col>
           </Form.Group>
+          <Row className="mb-3">
+                <Col sm={{ span: 10, offset: 2 }}>
+                    <Tab.Container id="left-tabs-example" defaultActiveKey="first">
+                      <Row>
+                        <Col sm={3}>
+                          <Nav variant="pills" className="flex-column fliter-tab">
+                            <Nav.Item>
+                              <Nav.Link eventKey="first"><FaBook /> Repertories:</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                              <Nav.Link eventKey="second"><FaHistory /> Authors:</Nav.Link>
+                            </Nav.Item>
+                          </Nav>
+                        </Col>
+                        <Col sm={9}>
+                          <Tab.Content>
+                            <Tab.Pane className="d-flex align-items-center flex-wrap" eventKey="first" style={{ gap: 8}}>
+                              {/* {availableRepertories.map((a) => (
+                                    <div
+                                        key={a}
+                                        className="mm-pill"
+                                        onClick={() => {
+                                          availableRepertories((prev) =>
+                                            prev.includes(a)
+                                              ? prev.filter((x) => x !== a)
+                                              : [...prev, a]
+                                          );
+                                        }}
+                                        style={{
+                                          border: repertoriesSelected.includes(a)
+                                            ? "2px solid rgba(126,163,255,0.6)"
+                                            : undefined,
+                                        }}>
+                                        {a}
+                                    </div>
+                                ))} */}
+                                {availableRepertories.map((r) => (
+                                  <div
+                                    key={r}
+                                    className="chip"
+                                    onClick={() => toggleRep(r)}
+                                    style={{
+                                      border: repertoriesSelected.includes(r)
+                                        ? "2px solid rgba(126,163,255,0.5)"
+                                        : undefined,
+                                    }}
+                                  >
+                                    {r}
+                                  </div>
+                                ))}
+                            </Tab.Pane>
+                            <Tab.Pane className="d-flex align-items-center flex-wrap" eventKey="second" style={{ gap: 8}}>
+                              
+                              {authorsList.map((r) => (
+                                <div
+                                  key={r}
+                                  className="chip"
+                                  onClick={() => toggleAuthor(r)}
+                                  style={{
+                                    border: authorFilter.includes(r)
+                                      ? "2px solid rgba(255,144,193,0.5)"
+                                      : undefined,
+                                  }}
+                                >
+                                  {r}
+                                </div>
+                              ))}
+
+                              
+                            </Tab.Pane>
+                          </Tab.Content>
+                        </Col>
+                      </Row>
+                    </Tab.Container>
+                     <div
+                        style={{
+                          marginTop: 12,
+                          display: "flex",
+                          gap: 12,
+                          alignItems: "center",
+                          }}
+                        >
+                        <div style={{ minWidth: 120, fontWeight: 700 }}>Severity</div>
+                        <div style={{ flex: 1, position: "relative" }}>
+                          <div
+                            className="glass-track-fill"
+                            style={{
+                              width: `${((severity - 1) / 4) * 100}%`,
+                              opacity: 0.2,
+                            }}
+                          />
+                          <input
+                            className="glass-slider"
+                            type="range"
+                            min="1"
+                            max="5"
+                            value={severity}
+                            onChange={(e) => setSeverity(Number(e.target.value))}
+                            aria-label="Severity"
+                          />
+                        </div>
+                        <div
+                          style={{ minWidth: 42, textAlign: "center", fontWeight: 800 }}
+                        >
+                          {severity}
+                        </div>
+                      </div>
+
+                   
+                </Col>
+                 
+          </Row>
+           
         </Form>
 
         {user?.hit_count === 0 && (

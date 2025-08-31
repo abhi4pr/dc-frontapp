@@ -130,7 +130,8 @@ const UserForm = () => {
           {
             pageLanguage: "en",
             includedLanguages:
-              "en,hi,ta,te,bn,ml,mr,gu,pa,kn,ur,es,fr,de,zh-CN,ja,ru,ar", // customize language list
+              // "en,hi,ta,te,bn,ml,mr,gu,pa,kn,ur,es,fr,de,zh-CN,ja,ru,ar", // customize language list
+              "en,hi",
             layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
           },
           "google_translate_element"
@@ -308,6 +309,38 @@ const UserForm = () => {
         >
 
         </Button>
+        <Button
+            variant="light"
+            size="sm"
+            style={{
+              borderRadius: "8px",
+              border: "1px solid #ddd",
+              marginTop: "8px",
+              fontWeight: "600",
+              padding: "6px 12px",
+              background: "#fff",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onClick={() => {
+              const el = document.querySelector("#google_translate_element select");
+              if (el) el.focus(); // opens language dropdown
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f9fafb";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#fff";
+            }}
+          >
+            🌐 Change Language
+            <span style={{ fontSize: "12px" }}>▼</span>
+        </Button>
+
       </div>
 
 

@@ -134,6 +134,7 @@
       .dropdown-toggle {
         > i {
           font-size: 16px;
+          color: #fff;
         }
 
         .badge {
@@ -331,7 +332,8 @@
       }
 
       .noti-head {
-        background: $menu-dark-background;
+        // background: $menu-dark-background;
+        background: $primary-color;
         padding: 15px 20px;
 
         h6 {
@@ -419,7 +421,8 @@
         color: #fff;
         padding: 15px;
         position: relative;
-        background: $menu-dark-background;
+        // background: $menu-dark-background;
+        background: $primary-color;
 
         img {
           width: 40px;
@@ -1805,4 +1808,8 @@
       padding-top: $header-height;
     }
   }
+}
+
+.header-test{
+  background: linear-gradient(181deg, rgba(10, 87, 87, 1), rgba(0, 168, 165, 1));
 }
