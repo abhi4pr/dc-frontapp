@@ -6,6 +6,8 @@ import axios from "axios";
 import Breadcrumb from "../../../layouts/AdminLayout/Breadcrumb";
 import { API_URL } from "../../../constants";
 import { toast } from "react-toastify";
+import logo from '../../../assets/images/homeophatic-logo.png';
+
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState("");
@@ -106,7 +108,8 @@ const ForgetPassword = () => {
           min-height: 240px;
         }
         .badge{ position:absolute; top:12px; right:12px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.7); color:#071428; font-weight:800; font-size:12px;}
-        .logo{ width:84px; height:84px; border-radius:50%; background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74)); display:flex; align-items:center; justify-content:center; box-shadow: 0 12px 28px rgba(10,14,40,.25) }
+        .logo{ width:92px;height:92px; border-radius:50%; background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.74)); display:flex;  justify-content:center; box-shadow: 0 12px 28px rgba(10,14,40,.25) }
+        
         .hero h2{ margin:14px 0 6px 0; color:var(--text); font-size:20px }
         .hero p{ margin:0; color:var(--muted); font-size:13px }
 
@@ -152,18 +155,7 @@ const ForgetPassword = () => {
             <aside className="hero" aria-hidden="false">
               <span className="badge">Early Access</span>
               <div className="logo" aria-hidden="true">
-                <svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M7.5 7.5l1-1h7l1 1h2A2.5 2.5 0 0 1 21 10v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17v-7A2.5 2.5 0 0 1 5.5 7.5h2z"
-                    stroke="#3b82f6"
-                    strokeWidth="1.4"
-                  />
+               <img src={logo} alt="Homeopathika Logo" width="100" height="120" />
                   <circle
                     cx="12"
                     cy="14"
@@ -171,7 +163,7 @@ const ForgetPassword = () => {
                     stroke="#8b5cf6"
                     strokeWidth="1.4"
                   />
-                </svg>
+                {/* </svg> */}
               </div>
               <h2>Homeopathika™</h2>
               <p>Password recovery — Doctor Portal</p>

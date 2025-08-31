@@ -318,7 +318,15 @@ const RemedySuggestion = () => {
           gap: 10px;
           align-items: center;
           flex-wrap: wrap;
+          // justify-content: center;
         }
+          @media (max-width: 560px) {
+          .btn-gradient, .btn-voice, .action-row button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
 
         .mode-chip {
           padding: 10px 16px;
@@ -436,6 +444,12 @@ const RemedySuggestion = () => {
         /* results + side */
         .layout-grid { display:grid; grid-template-columns: 1fr 340px; gap:18px; margin-top:18px; }
 
+        @media (max-width: 992px) {
+          .layout-grid {
+            grid-template-columns: 1fr; /* Mobile par ek hi column */
+          }
+        }
+
         .results-card {
           background: var(--card-bg);
           border-radius:12px;
@@ -480,6 +494,10 @@ const RemedySuggestion = () => {
           box-shadow: 0 8px 20px rgba(241,138,211,0.06);
         }
 
+        .marginLeft50{
+          margin-left:50% !important;
+        }
+
         .example-chip { background: linear-gradient(180deg,#fff,#fbfdff); padding:8px 12px; border-radius:999px; border:1px solid var(--border); cursor:pointer; min-height:44px; display:flex; align-items:center; }
 
         .small-muted { color:var(--text-secondary); font-size:13px; }
@@ -498,6 +516,19 @@ const RemedySuggestion = () => {
             justify-content: center; 
             min-width: 120px;
           }
+
+          .remedy-shell { max-width: min(1400px, calc(100% - 0px)); width:100%;
+
+          .w-100-on-mob{
+          width:100% !important;
+        }
+          .w-50-on-mob{
+          width:50% !important;
+        }
+
+        .marginLeft50{
+          margin-left:0% !important;
+        }
         }
         @media (max-width: 560px) {
           .controls-section {
@@ -580,9 +611,9 @@ const RemedySuggestion = () => {
                 {/* Controls section */}
                 <div className="controls-section">
                   {/* Mode selection row */}
-                  <div className="mode-row">
+                  <div className="mode-row flex-column flex-md-row">
                     <div
-                      className={`mode-chip ${mode === "text" ? "" : "active"}`}
+                      className={`mode-chip w-100-on-mob ${mode === "text" ? "" : "active"}`}
                       onClick={() => setMode("text")}
                       role="tab"
                       tabIndex={0}
@@ -596,11 +627,9 @@ const RemedySuggestion = () => {
 
                     <button
                       type="submit"
-                      className="btn-gradient"
+                      className="btn-gradient w-100-on-mob marginLeft50"
                       disabled={loading || user?.hit_count === 0}
-                      aria-label="Search for remedies"
-                      style={{ marginLeft: "50%" }}
-                    >
+                      aria-label="Search for remedies">
                       {loading ? (
                         <span
                           style={{
@@ -626,7 +655,7 @@ const RemedySuggestion = () => {
                       )}
                     </button>
 
-                    <Button
+                    <Button className="w-100-on-mob"
                       variant="outline-secondary"
                       onClick={clearInput}
                       style={{ minHeight: 44 }}
@@ -835,19 +864,19 @@ const RemedySuggestion = () => {
                     <div
                       className="ref-card"
                       onClick={() =>
-                        window.open("https://pubmed.ncbi.nlm.nih.gov", "_blank")
+                        window.open("http://www.homeoint.org/english/index.htm", "_blank")
                       }
                       role="link"
                       tabIndex={0}
                     >
-                      <div className="badge-gradient-a">P</div>
+                      <div className="badge-gradient-a">H</div>
                       <div>
-                        <div style={{ fontWeight: 700 }}>PubMed</div>
+                        <div style={{ fontWeight: 700 }}>Homeopathy</div>
                         <div className="small-muted">Research articles</div>
                       </div>
                     </div>
 
-                    <div
+                    {/* <div
                       className="ref-card"
                       onClick={() =>
                         window.open("https://www.who.int", "_blank")
@@ -875,7 +904,7 @@ const RemedySuggestion = () => {
                         <div style={{ fontWeight: 700 }}>NCBI</div>
                         <div className="small-muted">Datasets & more</div>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div
