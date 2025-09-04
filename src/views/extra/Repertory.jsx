@@ -1152,41 +1152,40 @@ const Repertory = () => {
   return (
     <Row className="justify-content-center rep-root">
       <div className="rep-card" style={{ position: "relative" }}>
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "flex-start",
-            marginBottom: 12,
-          }}
-        >
-          <div className="rep-badge">HM</div>
-          <div>
-            <h4 className="rep-title">Repertory (AI)</h4>
-            <div className="rep-sub">
-              Advanced repertory search, provenance and explainability for
-              clinicians
+        <div className="row mb-3">
+          <div className="col-md-8">
+            <div className="d-flex align-items-center">
+              <div>
+                 <div className="rep-badge">HM</div>
+              </div>
+              <div className="ms-3">
+                <h4 className="rep-title">Repertory (AI)</h4>
+                  <div className="rep-sub">
+                    Advanced repertory search, provenance and explainability for
+                    clinicians
+                  </div>
+              </div>
             </div>
           </div>
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "#495057" }}>
-              Hits left: <strong>{user?.hit_count ?? "-"}</strong>
-            </div>
-            <Button
-              size="sm"
-              variant="outline-primary"
-              onClick={() => navigate("/plans")}
-              style={{ borderRadius: 12 }}
-            >
-              Recharge
-            </Button>
+          <div className="col-md-4">
+             <div className="d-flex align-items-center justify-content-md-end justify-content-start mt-md-0 mt-2">
+               <div className="me-2">
+                  <div style={{ fontSize: 13, color: "#495057" }}>
+                    Hits left: <strong>{user?.hit_count ?? "-"}</strong>
+                  </div>
+               </div>
+
+               <div>
+                <Button
+                  size="sm"
+                  variant="outline-primary"
+                  onClick={() => navigate("/plans")}
+                  style={{ borderRadius: 12 }}
+                >
+                  Recharge
+                </Button>
+               </div>
+             </div>
           </div>
         </div>
 
@@ -1206,7 +1205,7 @@ const Repertory = () => {
 
         <Form onSubmit={handleSubmit} aria-label="Repertory search form">
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
-            <Form.Label column sm={2} style={{ textAlign: "right" }}>
+            <Form.Label className="text-md-end text-start" column sm={2}>
               Symptom:
             </Form.Label>
             <Col sm={10}>
@@ -1215,8 +1214,11 @@ const Repertory = () => {
                   <BsSearch className="search-left-ic" />
                   <input
                     name="disease"
-                    className="search-input"
-                    placeholder="e.g., anxiety - anticipatory, restlessness at night..."
+                    className="search-input search-input-padding"
+                    placeholder={window.innerWidth <= 768
+                    ? "e.g., anxiety..."
+                    : "e.g., anxiety - anticipatory, restlessness at night..."
+                    }
                     value={formData.disease}
                     onChange={handleChange}
                     onFocus={() =>

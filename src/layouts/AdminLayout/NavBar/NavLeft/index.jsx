@@ -6,7 +6,7 @@ import { ListGroup } from 'react-bootstrap';
 const NavLeft = () => {
   return (
     <React.Fragment>
-      <ListGroup as="ul" bsPrefix=" " className="navbar-nav me-auto">
+      <ListGroup as="ul" bsPrefix=" " className="navbar-nav me-auto d-md-block d-none">
         <ListGroup.Item as="li" bsPrefix=" " className="nav-item">
           {/* <NavSearch /> */}
         </ListGroup.Item>

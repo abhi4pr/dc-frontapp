@@ -184,6 +184,10 @@ td {
   .modal-open .modal {
     padding-left: 0 !important;
   }
+
+  .search-input-padding{
+    padding: 12px 158px 12px 48px !important;
+  }
 }
 .filter-bar .navbar {
   @media (max-width: 690px) {
@@ -214,4 +218,43 @@ td {
       color: #222 !important;
     }
   }
+}
+
+.pcoded-header .profile-notification-mob .pro-head{
+  color: #fff;
+    padding: 15px;
+    position: relative;
+    background: rgb(10, 87, 87);
+}
+
+.pcoded-header .profile-notification-mob .pro-body {
+    padding: 20px 0;
+    margin-bottom: 0;
+    list-style: none;
+}
+
+.pcoded-header .profile-notification-mob .pro-body li a{
+  color: #222;
+    font-size: 14px;
+    padding: 10px;
+}
+
+.pcoded-header .profile-notification-mob .pro-head img {
+    width: 40px;
+    margin-right: 10px;
+}
+
+.pcoded-header .profile-notification-mob .pro-body li a i {
+    margin-right: 10px;
+}
+
+.notificationn-mob{
+  position: absolute;
+  
+    width: 100%;
+    left: 76%;
+}
+
+.search-input-padding{
+    padding: 12px 164px 12px 48px !important;
 }
