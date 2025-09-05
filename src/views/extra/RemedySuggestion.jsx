@@ -11,6 +11,7 @@ import {
 } from "react-bootstrap";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import api from "../../utility/api";
+import Reachedlimit from "components/Modal/Reachedlimit";
 import { toast } from "react-toastify";
 import { API_URL } from "constants";
 import { useNavigate } from "react-router-dom";
@@ -60,8 +61,14 @@ const RemedySuggestion = () => {
   const { user } = useContext(UserContext);
   const fileRef = useRef(null);
   const skeletonTimerRef = useRef(null);
+  const [show, setShow] = useState(false);
+
 
   useEffect(() => {
+    if (user?.hit_count === 0) {
+      setShow(true); 
+    }
+    
     try {
       const raw = localStorage.getItem(STORAGE_HISTORY_KEY);
       if (raw) setHistory(JSON.parse(raw));
@@ -730,11 +737,11 @@ const RemedySuggestion = () => {
                   <div className="action-row"></div>
 
                   {/* Status messages */}
-                  {user?.hit_count === 0 && (
+                  {/* {user?.hit_count === 0 && (
                     <div className="text-danger" role="status">
                       You have reached your limit – please recharge.
                     </div>
-                  )}
+                  )} */}
                 </div>
               </Col>
             </Form.Group>
@@ -918,8 +925,14 @@ const RemedySuggestion = () => {
               </div>
             </aside>
           </div>
+
+           
+
+     
         </Card>
       </div>
+
+       <Reachedlimit show={show} handleClose={() => setShow(false)} />
     </Row>
   );
 };

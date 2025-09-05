@@ -25,6 +25,7 @@ import api from "../../utility/api";
 import Loader from "./Loader";
 import { UserContext } from "../../contexts/UserContext";
 import { toast } from "react-toastify";
+import Reachedlimit from "components/Modal/Reachedlimit";
 
 /**
  * LabReports - upgraded single-file component
@@ -55,8 +56,12 @@ const LabReports = () => {
   const [recent, setRecent] = useState([]);
   const [extractedValues, setExtractedValues] = useState(null); // placeholder for parsed results
   const [isProcessingParse, setIsProcessingParse] = useState(false);
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
+    if (user?.hit_count === 0) {
+      setShow(true); 
+    }
     try {
       const raw = localStorage.getItem("lab_recent_v1");
       if (raw) setRecent(JSON.parse(raw));
@@ -517,11 +522,11 @@ const LabReports = () => {
                     Cancel
                   </Button>
 
-                  {user?.hit_count === 0 && (
+                  {/* {user?.hit_count === 0 && (
                     <div className="text-danger">
                       You have reached your limit please recharge your limit.
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 {/* upload progress */}
@@ -770,6 +775,9 @@ const LabReports = () => {
               </div>
             </div>
           </div>
+
+          {/* reached limit modal */}
+          <Reachedlimit show={show} handleClose={() => setShow(false)} />
         </Card>
       </div>
     </Row>

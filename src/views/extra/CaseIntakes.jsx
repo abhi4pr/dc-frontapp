@@ -30,6 +30,7 @@ import {
   FaPrint,
   FaBars,
 } from "react-icons/fa";
+import Reachedlimit from "components/Modal/Reachedlimit";
 
 /* ===== Sections ===== */
 const sections = [
@@ -166,6 +167,7 @@ const CaseIntakes = () => {
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [show, setShow] = useState(false);
 
   const [newTimeline, setNewTimeline] = useState({
     symptom: "",
@@ -190,6 +192,9 @@ const CaseIntakes = () => {
 
   /* ===== Autosave & restore (no payload changes) ===== */
   useEffect(() => {
+     if (user?.hit_count === 0) {
+      setShow(true); 
+    }
     const key = "caseIntakesDraft";
     const saved = localStorage.getItem(key);
     if (saved) {
@@ -1699,6 +1704,10 @@ const CaseIntakes = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+
+      {/* reached limit modal */}
+      <Reachedlimit show={show} handleClose={() => setShow(false)} />
 
       {/* Mobile bottom bar */}
       <div className="mobile-action-bar" role="toolbar">

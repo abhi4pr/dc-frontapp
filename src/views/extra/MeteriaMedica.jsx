@@ -20,6 +20,7 @@ import api from "../../utility/api";
 import { toast } from "react-toastify";
 import { API_URL } from "../../constants";
 import { UserContext } from "../../contexts/UserContext";
+import Reachedlimit from "components/Modal/Reachedlimit";
 
 /**
  * MeteriaMedica — upgraded single-file
@@ -290,6 +291,8 @@ function computeConfidenceComponents(entry, query = "") {
 const MeteriaMedica = () => {
   const navigate = useNavigate();
   const { user } = useContext(UserContext);
+  const [show, setShow] = useState(false);
+  
 
   // preserve form state and handlers
   const [formData, setFormData] = useState({ medicine_name: "" });
@@ -319,6 +322,9 @@ const MeteriaMedica = () => {
 
   // inject inline CSS (uses the provided palette & glassmorphism)
   useEffect(() => {
+    if (user?.hit_count === 0) {
+      setShow(true); 
+    }
     const id = "mm-upgrade-styles-v2";
     if (document.getElementById(id)) return;
     const css = `
@@ -1590,11 +1596,11 @@ const MeteriaMedica = () => {
         
         
 
-        {user?.hit_count === 0 && (
+        {/* {user?.hit_count === 0 && (
           <p className="text-danger mt-2">
             You have reached your limit — please recharge.
           </p>
-        )}
+        )} */}
 
         <div className="mm-results" ref={resultsRef} aria-live="polite">
           {cacheBadge && (
@@ -1935,6 +1941,9 @@ const MeteriaMedica = () => {
             </Button>
           </Modal.Footer>
         </Modal>
+
+        {/* reached limit modal */}
+        <Reachedlimit show={show} handleClose={() => setShow(false)} />
       </div>
     </Row>
   );

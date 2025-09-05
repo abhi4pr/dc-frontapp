@@ -32,13 +32,17 @@ import {
 } from "react-icons/bs";
 import api from "../../utility/api";
 import { API_URL } from "constants";
-import { UserContext } from "../../contexts/UserContext";
+import { UserContext } from "../../contexts/UserContext"
+import Reachedlimit from "components/Modal/Reachedlimit";
+
 
 /* ----------------------------- IndexedDB helpers ----------------------------- */
+
 const DB_NAME = "homeopathika_repertory_db_v3";
 const STORE = "rep_cache_v3";
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 const CACHE_MAX = 800;
+
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -306,9 +310,12 @@ function computeVenn(list) {
   return { shared: [], unique: sets.map((s) => [...s]) };
 }
 
+
 /* --------------------------------- Component --------------------------------- */
 const Repertory = () => {
   const { user } = useContext(UserContext);
+  const [show, setShow] = useState(false);
+
   const navigate = useNavigate();
 
   // preserved names
@@ -384,6 +391,9 @@ const Repertory = () => {
 
   // inject the glassmorphic theme + fancy slider CSS once
   useEffect(() => {
+       if (user?.hit_count === 0) {
+      setShow(true); 
+    }
     const styleId = "rep-upgrade-v5-styles";
     if (document.getElementById(styleId)) return;
     const css = `
@@ -1545,11 +1555,11 @@ const Repertory = () => {
            
         </Form>
 
-        {user?.hit_count === 0 && (
+        {/* {user?.hit_count === 0 && (
           <div style={{ color: "#c92a2a", marginBottom: 8 }}>
             You have reached your limit please recharge your limit.
           </div>
-        )}
+        )} */}
 
         <div className="results" ref={resultsRef} onScroll={onScroll}>
           {cacheBadge && (
@@ -1906,6 +1916,11 @@ const Repertory = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* reached limit modal */}
+      <Reachedlimit show={show} handleClose={() => setShow(false)} />
+
+
     </Row>
   );
 };
