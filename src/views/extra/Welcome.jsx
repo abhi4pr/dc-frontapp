@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Button, Row, Col, Modal } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../../utility/api";
 import { API_URL } from "../../constants";
 
@@ -162,17 +162,15 @@ const Welcome = () => {
             aria-label="Header actions"
           >
             <div className="trust-inline" aria-hidden="true">
-              <span>🏥 Trusted by 500+ Clinics</span>
+              <Link to="/">Home</Link>
               <span style={{ paddingLeft: 6, paddingRight: 6 }}>•</span>
-              <span>🔒 HIPAA Compliant</span>
+              <Link to="/about-us">About us</Link>
               <span style={{ paddingLeft: 6, paddingRight: 6 }}>•</span>
-              <span style={{ color: "var(--muted)" }}>
-                {health?.status
-                  ? health.status === "unavailable"
-                    ? "Service unavailable"
-                    : "Service OK"
-                  : "Checking..."}
-              </span>
+              <Link to="/contact-us">Contact us</Link>
+              <span style={{ paddingLeft: 6, paddingRight: 6 }}>•</span>
+              <Link to="/privacy-policy">Privacy Policy</Link>
+              <span style={{ paddingLeft: 6, paddingRight: 6 }}>•</span>
+              <Link to="/refund-policy">Refund Policy</Link>
             </div>
 
             <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
@@ -183,13 +181,7 @@ const Welcome = () => {
               >
                 Login
               </button>
-              <button
-                className="btn-primary"
-                onClick={() => navigate("/auth/register")}
-                aria-label="Start free trial"
-              >
-                Start Free Trial
-              </button>
+
             </div>
           </div>
         </Container>
