@@ -9,9 +9,10 @@ import { toast } from "react-toastify";
 // - Accessible focus states, clear contrast, and subtle motion via CSS transitions.
 
 const THEME = {
-  primary: "#6A5ACD", // Slate Blue
+  primary: "rgba(10, 87, 87, 1)", // Slate Blue
+  
   primaryHover: "#5A4ACF",
-  secondary: "#9370DB", // Medium Purple
+  secondary: "#rgba(10, 87, 87, 1)", // Medium Purple
   secondaryHover: "#8260C9",
   bgMain: "#F9FAFB",
   panelBg: "rgba(255,255,255,0.66)",
@@ -180,8 +181,8 @@ export default function Plans() {
       <style>{`
         .hp-card { border-radius: 18px; padding: 20px; border: 1px solid rgba(229,231,235,0.7); background: ${THEME.panelBg}; box-shadow: 0 6px 20px rgba(16,24,40,0.06); backdrop-filter: blur(8px); }
         .hp-btn { transition: all 180ms ease; border-radius: 10px; padding: 10px 14px; font-weight: 600; }
-        .hp-primary { background: linear-gradient(90deg, ${THEME.primary} 0%, ${THEME.secondary} 100%); color: white; box-shadow: 0 8px 30px rgba(106,90,205,0.12); border: none; }
-        .hp-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(106,90,205,0.18); }
+        .hp-primary { background: rgba(10, 87, 87, 1); color: white;  border: none; }
+        // .hp-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(10, 87, 87, 1); }
         .hp-primary:active { transform: translateY(0); }
         .hp-secondary { background: white; border: 1px solid rgba(0,0,0,0.06); color: ${THEME.primaryText}; }
         .hp-pill { background: rgba(106,90,205,0.08); color: ${THEME.primary}; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
