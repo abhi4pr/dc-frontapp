@@ -269,7 +269,13 @@ const Profile = () => {
       <style>{`
         :root{
           --page-bg: linear-gradient(180deg, #f7fbff 0%, #fff7fc 100%);
-          --left-grad: linear-gradient(135deg, #CDEBFF 0%, #E0D7FF 55%, #FFD2E6 100%);
+          // --left-grad: linear-gradient(135deg, #CDEBFF 0%, #E0D7FF 55%, #FFD2E6 100%);
+          --left-grad : linear-gradient(
+              135deg,
+              rgb(180, 235, 235) 0%,   /* soft light teal */
+              rgb(150, 220, 220) 55%,  /* middle pastel */
+              rgb(120, 210, 210) 100%  /* slightly deeper */
+            );
           --accent-1: #5b6cff;
           --accent-2: #ff6fa3;
           --accent-3: #06b6a4;
@@ -285,7 +291,7 @@ const Profile = () => {
         .profile-card { width:1100px; max-width:96%; display:grid; grid-template-columns: 360px 1fr; gap:22px; background:transparent; }
         .panel-left { border-radius:var(--radius); padding:22px; background:var(--left-grad); color:#0b1220; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; align-items:center; }
         .avatar-outer{ width:140px; height:140px; border-radius:50%; background: linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04)); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(10,20,40,0.06); }
-        .avatar-ring{ width:124px; height:124px; border-radius:50%; background:conic-gradient(from 180deg, rgba(91,108,255,0.12), rgba(255,111,163,0.12)); display:flex; align-items:center; justify-content:center; }
+        .avatar-ring{ width:124px; height:124px; border-radius:50%; background:conic-gradient(from 360deg, rgb(10, 87, 87), rgb(0, 168, 165)); display:flex; align-items:center; justify-content:center; }
         .avatar{ width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid #fff; }
         .name{ margin-top:14px; font-size:20px; font-weight:700; color:var(--text-dark); }
         .email{ margin-top:6px; color:var(--muted-dark); font-size:13px; }
@@ -294,7 +300,7 @@ const Profile = () => {
         .usage-section{ width:100%; margin-top:18px; background: rgba(255,255,255,0.6); padding:12px; border-radius:12px; }
         .usage-row{ display:flex; justify-content:space-between; align-items:center; color:var(--text-dark); font-size:13px; margin-bottom:8px; font-weight:600; }
         .usage-bar{ height:10px; background: rgba(12,22,40,0.06); border-radius:10px; overflow:hidden; }
-        .usage-fill{ height:100%; background:linear-gradient(90deg, var(--accent-1), var(--accent-2)); width:0%; transition: width .4s ease; }
+        .usage-fill{ height:100%; background:linear-gradient(90deg,rgb(0, 168, 165), rgb(10, 87, 87)); width:0%; transition: width .4s ease; }
 
         .panel-right{ background:var(--card-white); border-radius:var(--radius); padding:22px; box-shadow:0 12px 34px rgba(12,22,40,0.04); color:var(--text-dark); }
         .panel-title{ font-size:20px; font-weight:800; margin-bottom:6px; }
@@ -314,11 +320,11 @@ const Profile = () => {
 
         .actions { display:flex; gap:12px; margin-top:14px; }
         .btn-primary {
-          padding:10px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:800; color:#fff; background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+          padding:10px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:800; color:#fff; background:linear-gradient(90deg,rgb(0, 168, 165), rgb(10, 87, 87));
           box-shadow: 0 12px 28px rgba(91,108,255,0.12);
         }
         .btn-secondary { padding:10px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:700; background:#fff7f9; color:var(--text-dark); box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
-        .btn-upgrade { padding:10px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:800; color:#003936; background: linear-gradient(90deg,#7ee3c8,#06b6a4); box-shadow: 0 12px 28px rgba(6,182,164,0.12); }
+        .btn-upgrade { padding:10px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:800; color:white; background:linear-gradient(90deg,rgb(0, 168, 165), rgb(10, 87, 87)); box-shadow: 0 12px 28px rgba(6,182,164,0.12); }
 
         .helper { font-size:13px; color:var(--muted-dark); margin-top:6px; }
 
@@ -407,7 +413,7 @@ const Profile = () => {
                     height: "100%",
                     width: `${completionPct}%`,
                     background:
-                      "linear-gradient(90deg,var(--accent-1),var(--accent-2))",
+                      "linear-gradient(90deg,rgb(0, 168, 165), rgb(10, 87, 87))",
                     transition: "width .3s ease",
                   }}
                 />

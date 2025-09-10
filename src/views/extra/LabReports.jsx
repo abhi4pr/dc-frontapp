@@ -265,7 +265,7 @@ const LabReports = () => {
         .lab-sub { color:var(--muted); margin-top:4px; font-size:13px; }
         .upload-area { border-radius:12px; background:var(--card); padding:14px; border:1px dashed rgba(12,16,22,0.06); display:flex; gap:12px; align-items:center; min-height:120px; transition: box-shadow .12s ease, border-color .12s ease; }
         .upload-area.drag-over { border-color: rgba(79,172,254,0.6); box-shadow: 0 12px 30px rgba(79,172,254,0.06); }
-        .upload-cta { background: linear-gradient(90deg,var(--accentA),var(--accentB)); color:white; border:none; padding:10px 12px; border-radius:10px; font-weight:600; }
+        .upload-cta { background: linear-gradient(90deg, rgb(10, 87, 87), rgb(0, 168, 165)); color:white; border:none; padding:10px 12px; border-radius:10px; font-weight:600; }
         .file-meta { font-size:13px; color:var(--muted); }
         .preview-thumb { width:120px; height:120px; border-radius:8px; object-fit:cover; border:1px solid rgba(12,16,22,0.04); }
         .results-box { background: linear-gradient(180deg,#ffffff,#fbfeff); border-radius:10px; padding:12px; border:1px solid rgba(12,16,22,0.04); box-shadow: 0 10px 30px rgba(12,16,22,0.04); }
@@ -290,7 +290,7 @@ const LabReports = () => {
 
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <Badge
-                bg="info"
+                // bg="info"
                 pill
                 style={{ fontSize: 13, padding: "8px 10px" }}
               >
@@ -503,7 +503,8 @@ const LabReports = () => {
                 >
                   <Button
                     type="submit"
-                    variant="primary"
+                    className="red"
+                    // variant="primary"
                     disabled={loading || user?.hit_count == 0}
                   >
                     {loading ? (
@@ -629,7 +630,8 @@ const LabReports = () => {
                           height: 84,
                           borderRadius: 12,
                           background:
-                            "linear-gradient(90deg,var(--accentA),var(--accentB))",
+                            // "linear-gradient(90deg,var(--accentA),var(--accentB))",
+                            "linear-gradient(90deg, rgb(10, 87, 87), rgb(0, 168, 165))",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",

@@ -339,7 +339,7 @@ const RemedySuggestion = () => {
           padding: 10px 16px;
           border-radius: 999px;
           cursor: pointer;
-          border: 1px solid rgba(17,24,39,0.08);
+          border: 1px solid rgb(10, 87, 87);
           transition: all .14s ease;
           font-size: 14px;
           display: flex;
@@ -351,15 +351,16 @@ const RemedySuggestion = () => {
         }
         
         .mode-chip.active {
-          background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165))
           color: white;
-          border-color: rgba(106,90,205,0.14);
-          box-shadow: 0 6px 18px rgba(106,90,205,0.12);
+          border-color: rgb(10, 87, 87);
+          box-shadow: 0 6px 18px rgb(10, 87, 87);
         }
         
         .mode-chip:hover:not(.active) {
-          border-color: var(--primary);
-          background: rgba(106,90,205,0.02);
+          border-color: rgb(10, 87, 87);
+          background: rgb(10, 87, 87);
+          color:white
         }
         
         .mode-chip:focus { 
@@ -377,7 +378,7 @@ const RemedySuggestion = () => {
 
         /* primary CTA gradient (blue -> cyan -> violet) - matches your first card style */
         .btn-gradient {
-          background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165));
           border: none;
           color: white;
           min-height: 44px;
@@ -419,7 +420,7 @@ const RemedySuggestion = () => {
         }
         
         .btn-voice:hover {
-          border-color: var(--primary);
+          border-color: rgb(10, 87, 87);
           background: rgba(106,90,205,0.02);
         }
         
@@ -466,7 +467,7 @@ const RemedySuggestion = () => {
         }
 
         /* small violet header accent to visually match the design */
-        .results-card .top-accent { height:6px; border-radius:6px; margin-bottom:10px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+        .results-card .top-accent { height:6px; border-radius:6px; margin-bottom:10px; background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165)); }
 
         .results-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
         .results-body { margin-top:12px; min-height:120px; color:var(--text-primary); line-height:1.6; }
@@ -492,7 +493,7 @@ const RemedySuggestion = () => {
         /* Quick link gradient badges (two distinct styles to match your image) */
         .badge-gradient-a {
           width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:white;
-          background: linear-gradient(180deg, var(--accent-blue), var(--accent-cyan), var(--primary));
+          background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165));
           box-shadow: 0 8px 20px rgba(79,122,254,0.08);
         }
         .badge-gradient-b {

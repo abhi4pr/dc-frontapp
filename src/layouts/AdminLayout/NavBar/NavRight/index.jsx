@@ -127,9 +127,9 @@ const NavRight = () => {
                     className="pro-body"
                   >
                     <ListGroup.Item as="li" bsPrefix=" ">
-                      <Link to="#" className="dropdown-item">
+                      {/* <Link to="#" className="dropdown-item">
                         <i className="feather icon-settings" /> Settings
-                      </Link>
+                      </Link> */}
                     </ListGroup.Item>
                     <ListGroup.Item as="li" bsPrefix=" ">
                       <Link to="/profile" className="dropdown-item">

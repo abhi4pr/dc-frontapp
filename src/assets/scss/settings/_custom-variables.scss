@@ -44,6 +44,10 @@ $yellow: #ffb64d; // change
 $green: #2ed8b6; // change
 $teal: #20c997;
 $cyan: #00bcd4; // change
+$newgreen:rgb(0, 168, 165);
+
+
+// linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165))
 
 $colors: ();
 // stylelint-disable-next-line scss/dollar-variable-default
@@ -61,12 +65,14 @@ $colors: map-merge(
     'cyan': $cyan,
     'white': $white,
     'gray': $gray-600,
-    'gray-dark': $gray-800
+    'gray-dark': $gray-800,
+    'newgreen': $newgreen
   ),
   $colors
 );
 
 $primary: $blue; // change
+$newprimary: $newgreen;
 $secondary: $gray-600; // change
 $success: $green; // change
 $info: $cyan; // change
@@ -86,7 +92,8 @@ $theme-colors: map-merge(
     'warning': $warning,
     'danger': $danger,
     'light': $light,
-    'dark': $dark
+    'dark': $dark,
+    'newprimary':$newprimary,
   ),
   $theme-colors
 );
@@ -244,7 +251,7 @@ $box-shadow: 0 0.5rem 1rem rgba($black, 0.15);
 $box-shadow-lg: 0 1rem 3rem rgba($black, 0.175);
 
 $component-active-color: $white;
-$component-active-bg: $primary; // change
+$component-active-bg: $newprimary; // change
 
 $caret-width: 0.3em;
 $caret-vertical-align: $caret-width * 0.85;

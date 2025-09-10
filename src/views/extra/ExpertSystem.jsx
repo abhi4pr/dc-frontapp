@@ -823,7 +823,7 @@ const ExpertSystem = () => {
                 width: "40px",
                 height: "40px",
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+                background: "linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165))",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -945,7 +945,7 @@ const ExpertSystem = () => {
             type="submit"
             disabled={loading}
             style={{
-              background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
+              background: "linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165))",
               border: "none",
               borderRadius: "12px",
               padding: "12px 32px",
@@ -1286,9 +1286,9 @@ const ExpertSystem = () => {
       <div className="container py-4">
         {/* Header */}
         <div
-          className="page-header mb-5"
+          className="page-header header-test mb-5"
           style={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+//             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
             borderRadius: "20px",
             padding: "40px",
             color: "white",
@@ -1313,6 +1313,7 @@ const ExpertSystem = () => {
               fontWeight: "800",
               fontSize: "2.5rem",
               marginBottom: "16px",
+            color: "white",
             }}
           >
             Homeopathic Expert Systems
@@ -1343,6 +1344,7 @@ const ExpertSystem = () => {
                   fontWeight: "600",
                   padding: "12px 24px",
                   margin: "0 4px",
+// color: "white",
                 }}
               >
                 <BsLightbulb className="me-2" />
@@ -1358,6 +1360,7 @@ const ExpertSystem = () => {
                   fontWeight: "600",
                   padding: "12px 24px",
                   margin: "0 4px",
+                // color: "white",
                 }}
               >
                 <BsBarChart className="me-2" />

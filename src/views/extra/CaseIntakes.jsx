@@ -139,7 +139,7 @@ const NavItem = ({ s, onClick }) => (
         width: 34,
         height: 34,
         borderRadius: 8,
-        background: "var(--primary)",
+        background: "linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165))",
         color: "#fff",
         display: "flex",
         alignItems: "center",
@@ -366,8 +366,8 @@ const CaseIntakes = () => {
   const S = (
     <style>{`
       :root{
-        --primary:#6A5ACD; --primary-hover:#5A4ACF;
-        --secondary:#9370DB; --secondary-hover:#8260C9;
+        --primary:rgb(10, 87, 87); --primary-hover:rgb(0, 168, 165);
+        --secondary:rgb(10, 87, 87); --secondary-hover:rgb(0, 168, 165);
         --bg:#F9FAFB; --card:#FFFFFF; --rowhover:#F3F4F6; --border:#E5E7EB;
         --text:#111827; --text2:#4B5563; --placeholder:#9CA3AF; --link:#6A5ACD;
         --success:#10B981; --error:#EF4444; --warning:#F59E0B; --info:#3B82F6;
@@ -380,7 +380,7 @@ const CaseIntakes = () => {
       }
       .container-grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start;max-width:1200px;margin:0 auto;padding:24px;}
       .left-pane{position:sticky;top:24px;height:calc(100vh - 48px);overflow-y:auto;}
-      .brand-chip{width:50px;height:50px;border-radius:16px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;}
+      .brand-chip{width:50px;height:50px;border-radius:16px;background:linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;}
       .btn-primary-accent{background:var(--primary);border:none;color:#fff;}
       .btn-primary-accent:hover{background:var(--primary-hover);}
       .btn-secondary-accent{background:var(--secondary);border:none;color:var(--text);}

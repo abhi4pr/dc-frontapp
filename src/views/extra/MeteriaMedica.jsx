@@ -342,7 +342,7 @@ const MeteriaMedica = () => {
         filter: blur(40px); border-radius:24px; z-index:1;
       }
       .mm-top { position:relative; z-index:2; display:flex; align-items:flex-start; gap:14px; margin-bottom:18px; }
-      .mm-logo { width:52px; height:52px; border-radius:14px; background: linear-gradient(135deg,#7ea3ff,#ff90c1);
+      .mm-logo { width:52px; height:52px; border-radius:14px; background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165));
         display:grid; place-items:center; color:white; font-weight:800; font-size:18px; box-shadow:0 8px 28px rgba(124,109,255,0.12); }
       .mm-title { margin:0; font-size:20px; font-weight:800; color:#072038; }
       .mm-sub { margin-top:4px; color:#4b5b63; font-size:13px; }
@@ -359,7 +359,7 @@ const MeteriaMedica = () => {
         background: linear-gradient(90deg, rgba(126,163,255,0.08), rgba(255,144,193,0.04));
       }
       .mm-btn-primary { padding:10px 18px; border-radius:12px; border:none; color:white; font-weight:800;
-        background: linear-gradient(90deg,#7ea3ff,#ff90c1); box-shadow: 0 12px 30px rgba(126,163,255,0.12);
+        background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165)); box-shadow: 0 12px 30px rgba(126,163,255,0.12);
       }
       .mm-suggestions { position:absolute; left:0; right:0; top:calc(100% + 10px); z-index:60;
         background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(252,254,255,0.98));
@@ -1301,34 +1301,41 @@ const MeteriaMedica = () => {
       <div className="mm-card" role="region" aria-labelledby="mm-title">
         <div className="mm-aurora" aria-hidden />
 
-        <div className="mm-top">
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <div className="mm-logo">HM</div>
-            <div>
-              <h4 id="mm-title" className="mm-title">
-                Materia Medica — Doctor View
-              </h4>
-              <div className="mm-sub">
-                Search remedies across authors, compare evidence, and inspect
+        <div className="row mb-3">
+          <div className="col-md-8">
+            <div className="d-flex align-items-center">
+              <div>
+                  <div className="mm-logo">HM</div>
+              </div>
+              <div className="ms-3">
+                <h4 className="mm-title">Materia Medica — Doctor View</h4>
+                  <div className="mm-sub">
+                    Search remedies across authors, compare evidence, and inspect
                 provenance.
+                  </div>
               </div>
             </div>
           </div>
+          <div className="col-md-4">
+              <div className="d-flex align-items-center justify-content-md-end justify-content-start mt-md-0 mt-2">
+                <div className="me-2">
+                  <div style={{ fontSize: 13, color: "#495057" }}>
+                    Hits left: <strong>{user?.hit_count ?? "-"}</strong>
+                  </div>
+                </div>
 
-          <div className="mm-controls" style={{ marginLeft: "30%" }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <div style={{ fontSize: 13, color: "#495057" }}>
-                Hits left: <strong>{user?.hit_count ?? "-"}</strong>
+                <div>
+                <Button
+                  size="sm"
+                  variant="newprimary"
+                  className="mm-pill"
+                  onClick={() => navigate("/plans")}
+                  style={{ borderRadius: 12 }}
+                >
+                  Recharge
+                </Button>
+                </div>
               </div>
-              <Button
-                size="sm"
-                variant="outline-primary"
-                className="mm-pill"
-                onClick={() => navigate("/plans")}
-              >
-                Recharge
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -1340,7 +1347,7 @@ const MeteriaMedica = () => {
 
         <Form onSubmit={handleSubmit} aria-label="Materia Medica search form">
           <Form.Group as={Row} className="mb-3" controlId="formTitle">
-            <Form.Label
+            <Form.Label className="text-md-end text-start"
               column
               sm={2}
               style={{ textAlign: "right", paddingTop: 8 }}
@@ -1353,9 +1360,13 @@ const MeteriaMedica = () => {
                 <div className="mm-search" ref={suggestionsRef}>
                   <BsSearch className="left-ic" aria-hidden />
                   <input
-                    className="search-input"
+                    className="search-input search-input-padding"
                     type="text"
-                    placeholder="Enter remedy name (e.g., Arsenicum album)..."
+                    placeholder={window.innerWidth <= 768
+                    ? "e.g., Ars..."
+                    : "e.g., Enter remedy name (e.g., Arsenicum album)..."
+                    }
+                    // placeholder="Enter remedy name (e.g., Arsenicum album)..."
                     name="medicine_name"
                     value={formData.medicine_name}
                     onChange={handleChange}
@@ -1400,7 +1411,7 @@ const MeteriaMedica = () => {
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button
                     type="submit"
-                    variant="primary"
+                    variant="newprimary"
                     className="mm-btn-primary"
                     disabled={loading || user?.hit_count === 0}
                   >

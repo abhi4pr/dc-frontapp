@@ -406,7 +406,7 @@ const Repertory = () => {
       }
       .rep-hero { display:flex; gap:12px; align-items:flex-start; margin-bottom:16px; }
       .rep-badge { width:56px; height:56px; border-radius:14px; display:grid; place-items:center; color:white; font-weight:900;
-        background: linear-gradient(135deg,#7ea3ff,#ff7fc4); box-shadow: 0 10px 30px rgba(126,163,255,0.12);
+        background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165)); box-shadow: 0 10px 30px rgba(126,163,255,0.12);
       }
       .rep-title { font-size:20px; font-weight:800; color:#072034; margin:0; }
       .rep-sub { color:#51646a; margin-top:4px; font-size:13px; }
@@ -420,7 +420,7 @@ const Repertory = () => {
       .search-left-ic { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#375e84; font-size:18px; }
       .search-right { position:absolute; right:14px; top:50%; transform:translateY(-50%); display:flex; gap:8px; align-items:center; }
       .mode-select { height:36px; border-radius:10px; border:1px solid rgba(10,60,80,0.04); background:transparent; padding:4px 8px; }
-      .search-btn { padding:10px 18px; border-radius:12px; border:none; color:white; background: linear-gradient(90deg,#7ea3ff,#ff90c1); font-weight:800; box-shadow: 0 12px 30px rgba(126,163,255,0.12); }
+      .search-btn { padding:10px 18px; border-radius:12px; border:none; color:white; background: linear-gradient(181deg, rgb(10, 87, 87), rgb(0, 168, 165)); font-weight:800; box-shadow: 0 12px 30px rgba(126,163,255,0.12); }
 
       .chips-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
       .chip { padding:8px 14px; border-radius:999px; background: rgba(126,163,255,0.06); border:1px solid rgba(126,163,255,0.08); cursor:pointer; font-weight:700; color:#073642; }
@@ -1188,7 +1188,8 @@ const Repertory = () => {
                <div>
                 <Button
                   size="sm"
-                  variant="outline-primary"
+                  variant="newprimary"
+                  className="mm-pill"
                   onClick={() => navigate("/plans")}
                   style={{ borderRadius: 12 }}
                 >
@@ -1224,7 +1225,7 @@ const Repertory = () => {
                   <BsSearch className="search-left-ic" />
                   <input
                     name="disease"
-                    className="search-input search-input-padding"
+                    className="search-input"
                     placeholder={window.innerWidth <= 768
                     ? "e.g., anxiety..."
                     : "e.g., anxiety - anticipatory, restlessness at night..."
@@ -1327,6 +1328,7 @@ const Repertory = () => {
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button
                     type="submit"
+                    variant="newprimary"
                     className="search-btn"
                     disabled={loading || user?.hit_count === 0}
                   >
